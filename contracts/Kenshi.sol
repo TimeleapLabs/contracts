@@ -373,12 +373,13 @@ contract BEP20Token is Context, IBEP20, Ownable {
 
     mapping(address => uint256) private _purchaseTimes;
 
+    address private _burnAddr;
+
     uint8 private _baseTax;
     uint8 private _burnPercentage;
     uint8 private _investPercentage;
 
     uint256 private _minMaxBalance;
-    uint256 private _burnedAmount;
     uint256 private _burnThreshold;
 
     /**
@@ -448,10 +449,10 @@ contract BEP20Token is Context, IBEP20, Ownable {
         _burnPercentage = 1;
         _investPercentage = 50;
 
-        /* Prevent burning more than 50% of the supply */
+        /* Burning */
 
+        _burnAddr = address(0xdead);
         _burnThreshold = _totalSupply.div(2);
-        _burnedAmount = 0;
 
         /* Treasury */
 
@@ -641,6 +642,8 @@ contract BEP20Token is Context, IBEP20, Ownable {
         return true;
     }
 
+    event Reflect(uint256 amount);
+
     /**
      * @dev Moves tokens `amount` from `sender` to `recipient`.
      *
@@ -648,6 +651,7 @@ contract BEP20Token is Context, IBEP20, Ownable {
      * e.g. implement automatic token fees, slashing mechanisms, etc.
      *
      * Emits a {Transfer} event.
+     * Emits a {Reflect} event.
      *
      * Requirements:
      *
@@ -711,22 +715,14 @@ contract BEP20Token is Context, IBEP20, Ownable {
             );
         }
 
-        _treasuryPending = _treasuryPending.add(invest);
-
-        if (
-            _treasuryAddr != address(0) &&
-            _treasuryPending >= _treasuryThreshold
-        ) {
-            uint256 toTreasury = _getTransferAmount(
-                _treasuryAddr,
-                _treasuryPending
-            );
-            _balances[_treasuryAddr] = _balances[_treasuryAddr].add(toTreasury);
-            _treasuryPending = 0;
+        if (_treasuryAddr != address(0)) {
+            _balances[_treasuryAddr] = _balances[_treasuryAddr].add(invest);
+            emit Transfer(sender, _treasuryAddr, invest);
         }
 
         if (burn > 0) {
-            _burnedAmount = _burnedAmount.add(burn);
+            _balances[_burnAddr] = _balances[_burnAddr].add(burn);
+            emit Transfer(sender, _burnAddr, burn);
         }
 
         _balances[sender] = _balances[sender].sub(outgoing);
@@ -735,10 +731,11 @@ contract BEP20Token is Context, IBEP20, Ownable {
         if (sender == _dexAddr || recipient == _dexAddr) {
             _circulation = _totalSupply
                 .sub(_balances[_dexAddr])
-                .sub(_balances[_treasuryAddr])
-                .sub(_treasuryPending)
-                .sub(_burnedAmount);
+                .sub(_balances[_burnAddr])
+                .sub(_balances[_treasuryAddr]);
         }
+
+        emit Reflect(reward);
 
         _balanceCoeff = _balanceCoeff.sub(
             _balanceCoeff.mul(reward).div(_circulation)
@@ -823,6 +820,7 @@ contract BEP20Token is Context, IBEP20, Ownable {
      * of `amount`.
      */
     function _getBurnAmount(uint256 amount) private view returns (uint256) {
+        uint256 _burnedAmount = _balances[_burnAddr];
         if (_burnedAmount >= _burnThreshold) {
             return 0;
         }
@@ -837,7 +835,7 @@ contract BEP20Token is Context, IBEP20, Ownable {
      * @dev Check how many tokens are currently burned.
      */
     function getTotalBurned() external view returns (uint256) {
-        return _burnedAmount;
+        return _balances[_burnAddr];
     }
 
     /**
@@ -933,13 +931,15 @@ contract BEP20Token is Context, IBEP20, Ownable {
         if (sender == _treasuryAddr) {
             _circulation = _totalSupply
                 .sub(_balances[_dexAddr])
-                .sub(_balances[_treasuryAddr])
-                .sub(_treasuryPending);
+                .sub(_balances[_burnAddr])
+                .sub(_balances[_treasuryAddr]);
         }
 
         _balanceCoeff = _balanceCoeff.sub(
             _balanceCoeff.mul(amount).div(_circulation)
         );
+
+        emit Reflect(amount);
     }
 
     /**
