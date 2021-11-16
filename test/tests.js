@@ -44,13 +44,13 @@ describe("Kenshi", function () {
     await tx(kenshi.transfer(addr1.address, "10000000000000000000000000"));
 
     expect(await kenshi.balanceOf(addr1.address)).to.equal(
-      "9802105263157894736842105"
+      "9797938144329896907216494"
     );
 
     await tx(kenshi.transfer(addr2.address, "10000000000000000000000000"));
 
     expect(await kenshi.balanceOf(addr1.address)).to.equal(
-      "9904210526315789473684210"
+      "9897917104986324426677887"
     );
   });
 
@@ -89,11 +89,13 @@ describe("Kenshi", function () {
 
     await tx(kenshi.setTreasuryAddr(addr4.address));
     await tx(kenshi.transfer(addr4.address, "10000000000000000000000000"));
-    await tx(kenshi.connect(addr4).deliver("10400000000000000000000000"));
+    await tx(
+      kenshi.connect(addr4).deliver(await kenshi.balanceOf(addr4.address))
+    );
 
     expect(await kenshi.balanceOf(addr4.address)).to.equal("0");
     expect(await kenshi.balanceOf(addr1.address)).to.equal(
-      "13569634289304721799274013"
+      "13331582988452262808868984"
     );
   });
 
@@ -113,7 +115,7 @@ describe("Kenshi", function () {
     );
 
     expect(await kenshi.balanceOf(addr2.address)).to.equal(
-      "483200847906730259671436"
+      "482926829268292682926829"
     );
   });
 
@@ -137,7 +139,7 @@ describe("Kenshi", function () {
     );
 
     expect(await kenshi.balanceOf(addr2.address)).to.equal(
-      "961983471074380165289256"
+      "961943319838056680161943"
     );
   });
 
@@ -163,7 +165,7 @@ describe("Kenshi", function () {
     );
 
     expect(await kenshi.balanceOf(addr2.address)).to.equal(
-      "641115879828326180257510"
+      "640887435777673984119570"
     );
   });
 
