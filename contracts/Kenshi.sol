@@ -957,7 +957,7 @@ contract BEP20Token is Context, IBEP20, Ownable {
      * - `dex` should not be address(0)
      */
     function setDexAddr(address dex) external onlyOwner {
-        require(dex != address(0));
+        require(dex != address(0), "Kenshi: cannot set DEX addr to 0x0");
         _dexAddr = dex;
     }
 
@@ -976,7 +976,7 @@ contract BEP20Token is Context, IBEP20, Ownable {
      * - `router` should not be address(0)
      */
     function setDexRouterAddr(address router) external onlyOwner {
-        require(router != address(0));
+        require(router != address(0), "Kenshi: cannot set router addr to 0x0");
         _dexRouterAddr = router;
     }
 
@@ -1046,6 +1046,7 @@ contract BEP20Token is Context, IBEP20, Ownable {
      * @dev Adds `addr` to whitelisted IDO presale addresses.
      */
     function whitelist(address addr) external onlyOwner {
+        require(addr != address(0), "Kenshi: cannot whitelist 0x0");
         _whitelisted[addr] = true;
     }
 
@@ -1064,7 +1065,7 @@ contract BEP20Token is Context, IBEP20, Ownable {
      * - `treasury` should not be address(0)
      */
     function setTreasuryAddr(address treasury) external onlyOwner {
-        require(treasury != address(0));
+        require(treasury != address(0), "Kenshi: cannot set treasury to 0x0");
         _treasuryAddr = treasury;
     }
 
