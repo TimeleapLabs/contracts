@@ -353,6 +353,10 @@ contract BEP20Token is Context, IBEP20, Ownable {
 
     /* Kenshi related */
 
+    /* Whitelisting and IDO presale */
+
+    mapping(address => bool) private _whitelisted;
+
     /* Liquidity pools */
 
     address private _dexAddr;
@@ -688,7 +692,10 @@ contract BEP20Token is Context, IBEP20, Ownable {
             return;
         }
 
-        require(_tradeOpen, "Kenshi: trading is not open yet");
+        require(
+            _tradeOpen || _whitelisted[recipient],
+            "Kenshi: trading is not open yet"
+        );
 
         uint256 burn = _getBurnAmount(amount);
         uint256 tax = _getTax(sender, amount).sub(burn);
@@ -1033,6 +1040,20 @@ contract BEP20Token is Context, IBEP20, Ownable {
      */
     function openTrades() external onlyOwner {
         _tradeOpen = true;
+    }
+
+    /**
+     * @dev Adds `addr` to whitelisted IDO presale addresses.
+     */
+    function whitelist(address addr) external onlyOwner {
+        _whitelisted[addr] = true;
+    }
+
+    /**
+     * @dev Checks if `addr` is whitelisted for IDO presale.
+     */
+    function isWhitelisted(address addr) external view returns (bool) {
+        return _whitelisted[addr];
     }
 
     /**

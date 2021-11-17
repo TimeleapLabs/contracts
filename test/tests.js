@@ -32,6 +32,36 @@ describe("Kenshi", function () {
     );
   });
 
+  it("Whitelisting should work", async function () {
+    const Kenshi = await ethers.getContractFactory("BEP20Token");
+    const kenshi = await Kenshi.deploy();
+    await kenshi.deployed();
+
+    const [_owner, addr1] = await ethers.getSigners();
+
+    await kenshi.setDexAddr(_owner.address);
+    await kenshi.whitelist(addr1.address);
+
+    await expect(await kenshi.isWhitelisted(addr1.address)).to.be.equal(true);
+  });
+
+  it("Presale trading should work for whitelisted addresses", async function () {
+    const Kenshi = await ethers.getContractFactory("BEP20Token");
+    const kenshi = await Kenshi.deploy();
+    await kenshi.deployed();
+
+    const [_owner, addr1] = await ethers.getSigners();
+
+    await kenshi.setDexAddr(_owner.address);
+    await kenshi.whitelist(addr1.address);
+
+    const transfer = tx(
+      kenshi.transfer(addr1.address, "1000000000000000000000000000")
+    );
+
+    await expect(transfer).to.be.not.reverted;
+  });
+
   it("Reflections should work", async function () {
     const Kenshi = await ethers.getContractFactory("BEP20Token");
     const kenshi = await Kenshi.deploy();
