@@ -746,7 +746,7 @@ contract BEP20Token is Context, IBEP20, Ownable {
 
         _recordPurchase(recipient, incoming);
 
-        emit Transfer(sender, recipient, amount);
+        emit Transfer(sender, recipient, amount.sub(burn).sub(invest));
     }
 
     /**
