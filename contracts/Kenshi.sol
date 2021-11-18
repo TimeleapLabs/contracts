@@ -370,8 +370,6 @@ contract BEP20Token is Context, IBEP20, Ownable {
     /* Treasury */
 
     address private _treasuryAddr;
-    uint256 private _treasuryPending;
-    uint256 private _treasuryThreshold;
 
     /* Tokenomics */
 
@@ -461,8 +459,6 @@ contract BEP20Token is Context, IBEP20, Ownable {
         /* Treasury */
 
         _treasuryAddr = address(0);
-        _treasuryPending = 0;
-        _treasuryThreshold = 1000;
 
         /* 
             Set initial max balance, this amount
@@ -1067,25 +1063,6 @@ contract BEP20Token is Context, IBEP20, Ownable {
     function setTreasuryAddr(address treasury) external onlyOwner {
         require(treasury != address(0), "Kenshi: cannot set treasury to 0x0");
         _treasuryAddr = treasury;
-    }
-
-    event TreasuryThresholdChanged(uint256 threshold);
-
-    /**
-     * @dev Sets the `threshold` for collecting investment tokens.
-     *
-     * emits a {TreasuryThresholdChanged} event.
-     */
-    function setTreasuryThreshold(uint256 threshold) external onlyOwner {
-        _treasuryThreshold = threshold;
-        emit TreasuryThresholdChanged(threshold);
-    }
-
-    /**
-     * @dev Returns the treasury threshold amount.
-     */
-    function getTreasuryThreshold() external view returns (uint256) {
-        return _treasuryThreshold;
     }
 
     event BurnThresholdChanged(uint256 threshold);
