@@ -333,18 +333,6 @@ describe("Kenshi", function () {
     expect(await kenshi.getTotalBurned()).to.equal("100");
   });
 
-  it("Should be able to set treasury threshold", async function () {
-    const Kenshi = await ethers.getContractFactory("BEP20Token");
-    const kenshi = await Kenshi.deploy();
-    await kenshi.deployed();
-    await kenshi.openTrades();
-
-    await kenshi.setTreasuryThreshold("100000000000000000000000");
-    const treasuryThreshold = await kenshi.getTreasuryThreshold();
-
-    expect(treasuryThreshold).to.equal("100000000000000000000000");
-  });
-
   it("Should burn 1% of the tx amount", async function () {
     const Kenshi = await ethers.getContractFactory("BEP20Token");
     const kenshi = await Kenshi.deploy();
