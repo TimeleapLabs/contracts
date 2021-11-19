@@ -701,7 +701,7 @@ contract BEP20Token is Context, IBEP20, Ownable {
         uint256 invest = tax.mul(_investPercentage).div(100);
         uint256 reward = tax.sub(invest);
 
-        uint256 remainingAmount = amount.sub(tax);
+        uint256 remainingAmount = amount.sub(tax).sub(burn);
         uint256 outgoing = _getTransferAmount(sender, amount);
         uint256 incoming = _getTransferAmount(recipient, remainingAmount);
 
@@ -721,6 +721,8 @@ contract BEP20Token is Context, IBEP20, Ownable {
         if (_treasuryAddr != address(0)) {
             _balances[_treasuryAddr] = _balances[_treasuryAddr].add(invest);
             emit Transfer(sender, _treasuryAddr, invest);
+        } else {
+            reward = reward.add(invest);
         }
 
         if (burn > 0) {

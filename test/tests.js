@@ -74,13 +74,13 @@ describe("Kenshi", function () {
     await tx(kenshi.transfer(addr1.address, "10000000000000000000000000"));
 
     expect(await kenshi.balanceOf(addr1.address)).to.equal(
-      "9797938144329896907216494"
+      "9899999999999999999999999"
     );
 
     await tx(kenshi.transfer(addr2.address, "10000000000000000000000000"));
 
     expect(await kenshi.balanceOf(addr1.address)).to.equal(
-      "9897917104986324426677887"
+      "10104123711340206185567010"
     );
   });
 
@@ -100,7 +100,7 @@ describe("Kenshi", function () {
       kenshi.recoverBEP20(kenshi.address, addr2.address, "100000000000")
     );
 
-    expect(await kenshi.balanceOf(addr2.address)).to.equal("96000000000");
+    expect(await kenshi.balanceOf(addr2.address)).to.equal("95000000000");
   });
 
   it("Delivering profits should work", async function () {
@@ -125,7 +125,7 @@ describe("Kenshi", function () {
 
     expect(await kenshi.balanceOf(addr4.address)).to.equal("0");
     expect(await kenshi.balanceOf(addr1.address)).to.equal(
-      "13331582988452262808868984"
+      "13656085289046831568206607"
     );
   });
 
@@ -145,7 +145,7 @@ describe("Kenshi", function () {
     );
 
     expect(await kenshi.balanceOf(addr2.address)).to.equal(
-      "482926829268292682926829"
+      "486019210245464247598719"
     );
   });
 
@@ -169,7 +169,7 @@ describe("Kenshi", function () {
     );
 
     expect(await kenshi.balanceOf(addr2.address)).to.equal(
-      "961943319838056680161943"
+      "953853955375253549695740"
     );
   });
 
@@ -195,7 +195,7 @@ describe("Kenshi", function () {
     );
 
     expect(await kenshi.balanceOf(addr2.address)).to.equal(
-      "640887435777673984119570"
+      "641806083650190114068441"
     );
   });
 
