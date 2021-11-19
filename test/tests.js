@@ -347,6 +347,29 @@ describe("Kenshi", function () {
     expect(await kenshi.getTotalBurned()).to.equal("100000000000000000000000");
   });
 
+  it("Get tax percentage at should work", async function () {
+    const Kenshi = await ethers.getContractFactory("BEP20Token");
+    const kenshi = await Kenshi.deploy();
+    await kenshi.deployed();
+    await kenshi.openTrades();
+
+    const [_owner, addr1] = await ethers.getSigners();
+
+    await tx(kenshi.setDexAddr(_owner.address));
+    await tx(kenshi.transfer(addr1.address, "10000000000000000000000000"));
+
+    const blockNumber = await ethers.provider.getBlockNumber();
+    const block = await ethers.provider.getBlock(blockNumber);
+    const timestamp = block.timestamp + 86400;
+
+    const taxPercentage = await kenshi.getTaxPercentageAt(
+      addr1.address,
+      timestamp
+    );
+
+    expect(taxPercentage).to.equal(44);
+  });
+
   it("Transfers equal to min transfer rate should pass", async function () {
     const Kenshi = await ethers.getContractFactory("BEP20Token");
     const kenshi = await Kenshi.deploy();

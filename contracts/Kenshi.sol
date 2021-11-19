@@ -1,5 +1,5 @@
 //SPDX-License-Identifier: UNLICENSED
-pragma solidity ^0.8.9;
+pragma solidity ^0.8.10;
 
 /*
   @source https://github.com/binance-chain/bsc-genesis-contract/blob/master/contracts/bep20_template/BEP20Token.template
@@ -871,6 +871,24 @@ contract BEP20Token is Context, IBEP20, Ownable {
         uint256 daysPassed = block.timestamp.sub(_purchaseTimes[sender]).div(
             86400
         );
+        if (daysPassed >= 30) {
+            return _baseTax;
+        }
+        return _baseTax + _earlySaleFines[daysPassed];
+    }
+
+    /**
+     * @dev calculate tax percentage for `sender` at `timestamp` based on purchase times.
+     */
+    function getTaxPercentageAt(address sender, uint256 timestamp)
+        public
+        view
+        returns (uint8)
+    {
+        if (_isExcluded(sender)) {
+            return _baseTax;
+        }
+        uint256 daysPassed = timestamp.sub(_purchaseTimes[sender]).div(86400);
         if (daysPassed >= 30) {
             return _baseTax;
         }
