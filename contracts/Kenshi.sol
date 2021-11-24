@@ -1,6 +1,8 @@
 //SPDX-License-Identifier: UNLICENSED
 pragma solidity ^0.8.10;
 
+import "hardhat/console.sol";
+
 /*
   @source https://github.com/binance-chain/bsc-genesis-contract/blob/master/contracts/bep20_template/BEP20Token.template
 
@@ -337,6 +339,13 @@ contract Ownable is Context {
     }
 }
 
+interface IPresale {
+    /**
+     * @dev Checks if `addr` is whitelisted for IDO presale.
+     */
+    function isWhitelisted(address addr) external view returns (bool);
+}
+
 contract BEP20Token is Context, IBEP20, Ownable {
     using SafeMath for uint256;
 
@@ -370,6 +379,10 @@ contract BEP20Token is Context, IBEP20, Ownable {
     /* Treasury */
 
     address private _treasuryAddr;
+
+    /* Presale */
+
+    address private _presaleContractAddr;
 
     /* Tokenomics */
 
@@ -459,6 +472,10 @@ contract BEP20Token is Context, IBEP20, Ownable {
         /* Treasury */
 
         _treasuryAddr = address(0);
+
+        /* Presale */
+
+        _presaleContractAddr = address(0);
 
         /* 
             Set initial max balance, this amount
@@ -689,7 +706,7 @@ contract BEP20Token is Context, IBEP20, Ownable {
         }
 
         require(
-            _tradeOpen || _whitelisted[recipient],
+            _tradeOpen || isWhitelisted(recipient),
             "Kenshi: trading is not open yet"
         );
 
@@ -934,6 +951,16 @@ contract BEP20Token is Context, IBEP20, Ownable {
     }
 
     /**
+     * @dev Checks if `addr` is whitelisted for IDO presale.
+     */
+    function isWhitelisted(address addr) public view returns (bool) {
+        if (_presaleContractAddr == address(0)) {
+            return false;
+        }
+        return IPresale(_presaleContractAddr).isWhitelisted(addr);
+    }
+
+    /**
      * @dev Remove `amount` from msg.sender and reflect it on all holders.
      *
      * Requirements:
@@ -1059,21 +1086,6 @@ contract BEP20Token is Context, IBEP20, Ownable {
     }
 
     /**
-     * @dev Adds `addr` to whitelisted IDO presale addresses.
-     */
-    function whitelist(address addr) external onlyOwner {
-        require(addr != address(0), "Kenshi: cannot whitelist 0x0");
-        _whitelisted[addr] = true;
-    }
-
-    /**
-     * @dev Checks if `addr` is whitelisted for IDO presale.
-     */
-    function isWhitelisted(address addr) external view returns (bool) {
-        return _whitelisted[addr];
-    }
-
-    /**
      * @dev Sets `treasury` addr for collecting investment tokens.
      *
      * Requirements:
@@ -1083,6 +1095,21 @@ contract BEP20Token is Context, IBEP20, Ownable {
     function setTreasuryAddr(address treasury) external onlyOwner {
         require(treasury != address(0), "Kenshi: cannot set treasury to 0x0");
         _treasuryAddr = treasury;
+    }
+
+    /**
+     * @dev Sets `treasury` addr for collecting investment tokens.
+     *
+     * Requirements:
+     *
+     * - `treasury` should not be address(0)
+     */
+    function setPresaleContractAddr(address presale) external onlyOwner {
+        require(
+            presale != address(0),
+            "Kenshi: cannot set presale addr to 0x0"
+        );
+        _presaleContractAddr = presale;
     }
 
     event BurnThresholdChanged(uint256 threshold);

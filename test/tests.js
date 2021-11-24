@@ -14,17 +14,32 @@ describe("Kenshi", function () {
     );
   });
 
-  it("Trading should not work before it's set to open", async function () {
+  it("Is whitelisted? should return false when Presale addr not set", async function () {
     const Kenshi = await ethers.getContractFactory("BEP20Token");
     const kenshi = await Kenshi.deploy();
     await kenshi.deployed();
 
     const [_owner, addr1] = await ethers.getSigners();
 
+    expect(await kenshi.isWhitelisted(addr1.address)).to.equal(false);
+  });
+
+  it("Trading should not work before it's set to open", async function () {
+    const Kenshi = await ethers.getContractFactory("BEP20Token");
+    const kenshi = await Kenshi.deploy();
+    await kenshi.deployed();
+
+    const Presale = await ethers.getContractFactory("Presale");
+    const presale = await Presale.deploy();
+    await presale.deployed();
+
+    const [_owner, _addr1, addr2] = await ethers.getSigners();
+
     await kenshi.setDexAddr(_owner.address);
+    await kenshi.setPresaleContractAddr(presale.address);
 
     const transfer = tx(
-      kenshi.transfer(addr1.address, "1000000000000000000000000000")
+      kenshi.transfer(addr2.address, "1000000000000000000000000000")
     );
 
     await expect(transfer).to.be.revertedWith(
@@ -32,17 +47,15 @@ describe("Kenshi", function () {
     );
   });
 
-  it("Whitelisting should work", async function () {
-    const Kenshi = await ethers.getContractFactory("BEP20Token");
-    const kenshi = await Kenshi.deploy();
-    await kenshi.deployed();
+  it("Whitelisting should work (Presale Contract)", async function () {
+    const Presale = await ethers.getContractFactory("Presale");
+    const presale = await Presale.deploy();
+    await presale.deployed();
 
-    const [_owner, addr1] = await ethers.getSigners();
+    const [_owner, _addr1, addr2] = await ethers.getSigners();
 
-    await kenshi.setDexAddr(_owner.address);
-    await kenshi.whitelist(addr1.address);
-
-    await expect(await kenshi.isWhitelisted(addr1.address)).to.be.equal(true);
+    await presale.whitelist(addr2.address);
+    await expect(await presale.isWhitelisted(addr2.address)).to.be.equal(true);
   });
 
   it("Presale trading should work for whitelisted addresses", async function () {
@@ -50,10 +63,14 @@ describe("Kenshi", function () {
     const kenshi = await Kenshi.deploy();
     await kenshi.deployed();
 
+    const Presale = await ethers.getContractFactory("Presale");
+    const presale = await Presale.deploy();
+    await presale.deployed();
+
     const [_owner, addr1] = await ethers.getSigners();
 
     await kenshi.setDexAddr(_owner.address);
-    await kenshi.whitelist(addr1.address);
+    await kenshi.setPresaleContractAddr(presale.address);
 
     const transfer = tx(
       kenshi.transfer(addr1.address, "1000000000000000000000000000")
@@ -368,6 +385,52 @@ describe("Kenshi", function () {
     );
 
     expect(taxPercentage).to.equal(44);
+  });
+
+  it("Get tax percentage at should work (+30 days)", async function () {
+    const Kenshi = await ethers.getContractFactory("BEP20Token");
+    const kenshi = await Kenshi.deploy();
+    await kenshi.deployed();
+    await kenshi.openTrades();
+
+    const [_owner, addr1] = await ethers.getSigners();
+
+    await tx(kenshi.setDexAddr(_owner.address));
+    await tx(kenshi.transfer(addr1.address, "10000000000000000000000000"));
+
+    const blockNumber = await ethers.provider.getBlockNumber();
+    const block = await ethers.provider.getBlock(blockNumber);
+    const timestamp = block.timestamp + 86400 * 31;
+
+    const taxPercentage = await kenshi.getTaxPercentageAt(
+      addr1.address,
+      timestamp
+    );
+
+    expect(taxPercentage).to.equal(5);
+  });
+
+  it("Get tax percentage at should work (excluded)", async function () {
+    const Kenshi = await ethers.getContractFactory("BEP20Token");
+    const kenshi = await Kenshi.deploy();
+    await kenshi.deployed();
+    await kenshi.openTrades();
+
+    const [_owner, addr1] = await ethers.getSigners();
+
+    await tx(kenshi.setDexAddr(addr1.address));
+    await tx(kenshi.transfer(addr1.address, "10000000000000000000000000"));
+
+    const blockNumber = await ethers.provider.getBlockNumber();
+    const block = await ethers.provider.getBlock(blockNumber);
+    const timestamp = block.timestamp + 86400;
+
+    const taxPercentage = await kenshi.getTaxPercentageAt(
+      addr1.address,
+      timestamp
+    );
+
+    expect(taxPercentage).to.equal(5);
   });
 
   it("Transfers equal to min transfer rate should pass", async function () {
