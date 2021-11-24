@@ -9,6 +9,7 @@ contract Presale {
     address private _owner;
 
     constructor() {
+        // Dummy Hardhat address, add whitelisted addresses here one after another
         _whitelist[address(0x70997970C51812dc3A010C7d01b50e0d17dc79C8)] = true;
         _owner = msg.sender;
     }
