@@ -733,7 +733,7 @@ contract BEP20Token is Context, IBEP20, Ownable {
         _balances[sender] = _balances[sender].sub(outgoing);
         _balances[recipient] = _balances[recipient].add(incoming);
 
-        if (sender == _dexAddr || recipient == _dexAddr) {
+        if (_isExcluded(sender) || _isExcluded(recipient)) {
             _circulation = _totalSupply
                 .sub(_balances[_dexAddr])
                 .sub(_balances[_burnAddr])
