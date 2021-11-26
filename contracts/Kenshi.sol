@@ -725,13 +725,10 @@ contract BEP20Token is Context, IBEP20, Ownable {
             "Balance is lower than the requested amount"
         );
 
-        // Allow selling to DEX
-        if (recipient != owner() && recipient != _dexAddr) {
-            require(
-                _checkMaxBalance(recipient, incoming),
-                "Kenshi: resulting balance more than the maximum allowed"
-            );
-        }
+        require(
+            _checkMaxBalance(recipient, incoming),
+            "Kenshi: resulting balance more than the maximum allowed"
+        );
 
         if (_treasuryAddr != address(0)) {
             _balances[_treasuryAddr] = _balances[_treasuryAddr].add(invest);
@@ -934,11 +931,11 @@ contract BEP20Token is Context, IBEP20, Ownable {
         view
         returns (bool)
     {
-        uint256 newBalance = _balances[recipient].add(incoming);
-        if (!_isExcluded(recipient)) {
-            newBalance = newBalance.div(_balanceCoeff);
+        if (_isExcluded(recipient)) {
+            return true;
         }
-        return newBalance <= getMaxBalance();
+        uint256 newBalance = _balances[recipient].add(incoming);
+        return newBalance.div(_balanceCoeff) <= getMaxBalance();
     }
 
     /**
