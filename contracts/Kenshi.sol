@@ -360,10 +360,6 @@ contract BEP20Token is Context, IBEP20, Ownable {
 
     /* Kenshi related */
 
-    /* Whitelisting and IDO presale */
-
-    mapping(address => bool) private _whitelisted;
-
     /* Liquidity pools */
 
     address private _dexAddr;
@@ -895,7 +891,7 @@ contract BEP20Token is Context, IBEP20, Ownable {
      * @dev calculate tax percentage for `sender` at `timestamp` based on purchase times.
      */
     function getTaxPercentageAt(address sender, uint256 timestamp)
-        public
+        external
         view
         returns (uint8)
     {
