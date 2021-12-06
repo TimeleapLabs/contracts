@@ -28,5 +28,8 @@
     "hardhat-contract-sizer": "^2.1.1",
     "solidity-coverage": "^0.7.17",
     "web3": "^1.6.0"
+  },
+  "dependencies": {
+    "pancakeswap-peripheral": "^1.1.0-beta.0"
   }
 }

@@ -1,13 +1,15 @@
 //SPDX-License-Identifier: UNLICENSED
 pragma solidity ^0.8.10;
 
+import "pancakeswap-peripheral/contracts/interfaces/IPancakeRouter02.sol";
+
 /*
   @source https://github.com/binance-chain/bsc-genesis-contract/blob/master/contracts/bep20_template/BEP20Token.template
 
   CHANGES:
   
   - formatted with Prettier.
-  - Updated syntax to 0.8.9
+  - Updated syntax to 0.8.10
 */
 
 interface IBEP20 {
@@ -363,7 +365,9 @@ contract BEP20Token is Context, IBEP20, Ownable {
     /* Liquidity pools */
 
     address private _dexAddr;
-    address private _dexRouterAddr;
+    address private _routerAddr;
+    address private _liquidator;
+    IPancakeRouter02 private _dexRouter;
 
     /* Reward calculation */
 
@@ -452,7 +456,8 @@ contract BEP20Token is Context, IBEP20, Ownable {
         /* Kenshi related */
 
         _dexAddr = address(0);
-        _dexRouterAddr = address(0);
+        _routerAddr = address(0);
+        _liquidator = msg.sender;
 
         _baseTax = 5;
         _burnPercentage = 1;
@@ -476,7 +481,7 @@ contract BEP20Token is Context, IBEP20, Ownable {
             increases over time
         */
 
-        _minMaxBalance = _totalSupply.div(1000);
+        _minMaxBalance = _totalSupply.div(100);
 
         /*
             This value gives us maximum precision without
@@ -691,10 +696,11 @@ contract BEP20Token is Context, IBEP20, Ownable {
             return;
         }
 
-        /* Relay router transfers to allow removing lp tokens */
-        if (sender == _dexRouterAddr || recipient == _dexRouterAddr) {
-            _balances[sender] = _balances[sender].sub(amount);
-            _balances[recipient] = _balances[recipient].add(amount);
+        if (_isTaxless(sender) || _isTaxless(recipient)) {
+            uint256 rOutgoing = _getTransferAmount(sender, amount);
+            uint256 rIncoming = _getTransferAmount(recipient, amount);
+            _balances[sender] = _balances[sender].sub(rOutgoing);
+            _balances[recipient] = _balances[recipient].add(rIncoming);
             emit Transfer(sender, recipient, amount);
             return;
         }
@@ -741,12 +747,13 @@ contract BEP20Token is Context, IBEP20, Ownable {
         _balances[sender] = _balances[sender].sub(outgoing);
         _balances[recipient] = _balances[recipient].add(incoming);
 
-        if (_isExcluded(sender) || _isExcluded(recipient)) {
-            _circulation = _totalSupply
-                .sub(_balances[_dexAddr])
-                .sub(_balances[_burnAddr])
-                .sub(_balances[_treasuryAddr]);
-        }
+        emit Transfer(sender, recipient, amount.sub(burn).sub(tax));
+
+        _circulation = _totalSupply
+            .sub(_balances[_dexAddr])
+            .sub(_balances[_burnAddr])
+            .sub(_balances[_treasuryAddr])
+            .sub(_balances[address(this)]);
 
         emit Reflect(reward);
 
@@ -755,8 +762,6 @@ contract BEP20Token is Context, IBEP20, Ownable {
         );
 
         _recordPurchase(recipient, incoming);
-
-        emit Transfer(sender, recipient, amount.sub(burn).sub(tax));
     }
 
     /**
@@ -820,9 +825,23 @@ contract BEP20Token is Context, IBEP20, Ownable {
         return
             addr == owner() ||
             addr == _dexAddr ||
-            addr == _dexRouterAddr ||
+            addr == _routerAddr ||
             addr == _treasuryAddr ||
             addr == address(this);
+    }
+
+    /**
+     * @dev Check if a tx for `addr` should be tax-less.
+     *
+     * Owner transaction should be tax-less, this is either a
+     * liquidity adding tx or someone sending tokens to the
+     * contract address by mistake.
+     *
+     * Router transactions should be tax-free to allow removing
+     * liquidity pool tokens.
+     */
+    function _isTaxless(address addr) private view returns (bool) {
+        return addr == _routerAddr || addr == owner();
     }
 
     /**
@@ -969,12 +988,11 @@ contract BEP20Token is Context, IBEP20, Ownable {
 
         _balances[sender] = _balances[sender].sub(outgoing);
 
-        if (sender == _treasuryAddr) {
-            _circulation = _totalSupply
-                .sub(_balances[_dexAddr])
-                .sub(_balances[_burnAddr])
-                .sub(_balances[_treasuryAddr]);
-        }
+        _circulation = _totalSupply
+            .sub(_balances[_dexAddr])
+            .sub(_balances[_burnAddr])
+            .sub(_balances[_treasuryAddr])
+            .sub(_balances[address(this)]);
 
         _balanceCoeff = _balanceCoeff.sub(
             _balanceCoeff.mul(amount).div(_circulation)
@@ -1003,6 +1021,28 @@ contract BEP20Token is Context, IBEP20, Ownable {
     }
 
     /**
+     * @dev Sets the liquidator address to `liquidator`.
+     *
+     * Requirements:
+     *
+     * - `liquidator` should not be address(0)
+     */
+    function setLiquidatorAddr(address liquidator) external onlyOwner {
+        require(
+            liquidator != address(0),
+            "Kenshi: cannot set liquidator addr to 0x0"
+        );
+        _liquidator = liquidator;
+    }
+
+    /**
+     * @dev Get the current liquidator address.
+     */
+    function getLiquidatorAddr() external view returns (address) {
+        return _liquidator;
+    }
+
+    /**
      * @dev Sets the current DEX router address to `router`.
      *
      * Requirements:
@@ -1011,14 +1051,15 @@ contract BEP20Token is Context, IBEP20, Ownable {
      */
     function setDexRouterAddr(address router) external onlyOwner {
         require(router != address(0), "Kenshi: cannot set router addr to 0x0");
-        _dexRouterAddr = router;
+        _routerAddr = router;
+        _dexRouter = IPancakeRouter02(_routerAddr);
     }
 
     /**
      * @dev Get the current DEX router address.
      */
     function getDexRouterAddr() external view returns (address) {
-        return _dexRouterAddr;
+        return _routerAddr;
     }
 
     event InvestmentPercentageChanged(uint8 percentage);
@@ -1123,6 +1164,115 @@ contract BEP20Token is Context, IBEP20, Ownable {
     }
 
     /**
+     * @dev Un-owns `amount` from sender.
+     *
+     * The un-owned amount gets injected to the liquidity pool in small
+     * chunks on each tx.
+     */
+    function unOwn(uint256 amount) external {
+        require(
+            balanceOf(_msgSender()) >= amount,
+            "Kenshi: Cannot un-own more than what is owned"
+        );
+        uint256 outAmount = _getTransferAmount(_msgSender(), amount);
+        _balances[_msgSender()] = _balances[_msgSender()].sub(outAmount);
+        _balances[address(this)] = _balances[address(this)].add(amount);
+        emit Transfer(_msgSender(), address(this), amount);
+    }
+
+    /**
+     * @dev Returns the un-owned amount.
+     */
+    function getUnOwned() external view returns (uint256) {
+        return _balances[address(this)];
+    }
+
+    /**
+     * @dev Sells `tokenAmount` for BNB.
+     */
+    function _swapTokensForBNB(uint256 tokenAmount) private {
+        address[] memory path = new address[](2);
+        path[0] = address(this);
+        path[1] = _dexRouter.WETH();
+
+        _approve(address(this), _routerAddr, tokenAmount);
+
+        _dexRouter.swapExactTokensForETHSupportingFeeOnTransferTokens(
+            tokenAmount,
+            0,
+            path,
+            address(this),
+            block.timestamp
+        );
+    }
+
+    /**
+     * @dev Adds `tokenAmount` against `bnbAmount` into the liquidity pool.
+     */
+    function _addLiquidity(uint256 tokenAmount, uint256 bnbAmount) private {
+        _approve(address(this), _routerAddr, tokenAmount);
+
+        _dexRouter.addLiquidityETH{value: bnbAmount}(
+            address(this),
+            tokenAmount,
+            0,
+            0,
+            owner(),
+            block.timestamp
+        );
+    }
+
+    event LiquidityAdded(uint256 sold, uint256 bnb, uint256 injected);
+
+    /**
+     * @dev Adds `amount` from un-owned balance to the liquidity pool.
+     */
+    function swapAndLiquify(uint256 amount) public {
+        require(
+            _msgSender() == _liquidator,
+            "Kenshi: Only the liquidator can call this function."
+        );
+
+        if (_balances[address(this)] == 0) {
+            return;
+        }
+
+        if (amount > _balances[address(this)]) {
+            amount = _balances[address(this)];
+            _balances[address(this)] = 0;
+        } else {
+            _balances[address(this)] = _balances[address(this)].sub(amount);
+        }
+
+        uint256 half = amount.div(2);
+        uint256 rest = amount.sub(half);
+        uint256 initialBalance = address(this).balance;
+
+        _swapTokensForBNB(half);
+        uint256 diffBalance = address(this).balance.sub(initialBalance);
+        _addLiquidity(rest, diffBalance);
+        emit LiquidityAdded(half, diffBalance, rest);
+    }
+
+    /**
+     * @dev Receive BNB. Required for liquidity bootstrapping.
+     */
+    receive() external payable {}
+
+    /**
+     * @dev Sends `amount` of BNB from contract address to `recipient`
+     *
+     * Useful if someone sent some BNBs to the contract address by mistake.
+     */
+    function recoverBNB(address payable recipient, uint256 amount)
+        external
+        onlyOwner
+    {
+        (bool sent, ) = recipient.call{value: amount}("");
+        require(sent, "Failed to send Ether");
+    }
+
+    /**
      * @dev Sends `amount` of BEP20 `token` from contract address to `recipient`
      *
      * Useful if someone sent bep20 tokens to the contract address by mistake.
@@ -1132,6 +1282,10 @@ contract BEP20Token is Context, IBEP20, Ownable {
         address recipient,
         uint256 amount
     ) external onlyOwner returns (bool) {
+        require(
+            token != address(this),
+            "Kenshi: Cannot recover Kenshi from the contract"
+        );
         return IBEP20(token).transfer(recipient, amount);
     }
 }
