@@ -374,9 +374,10 @@ contract BEP20Token is Context, IBEP20, Ownable {
     uint256 private _circulation;
     uint256 private _balanceCoeff;
 
-    /* Treasury */
+    /* Treasury and Reserve */
 
     address private _treasuryAddr;
+    address private _reserveAddr;
 
     /* Presale */
 
@@ -468,9 +469,10 @@ contract BEP20Token is Context, IBEP20, Ownable {
         _burnAddr = address(0xdead);
         _burnThreshold = _totalSupply.div(2);
 
-        /* Treasury */
+        /* Treasury and Reserve */
 
         _treasuryAddr = address(0);
+        _reserveAddr = address(0);
 
         /* Presale */
 
@@ -827,6 +829,7 @@ contract BEP20Token is Context, IBEP20, Ownable {
             addr == _dexAddr ||
             addr == _routerAddr ||
             addr == _treasuryAddr ||
+            addr == _reserveAddr ||
             addr == address(this);
     }
 
@@ -841,7 +844,11 @@ contract BEP20Token is Context, IBEP20, Ownable {
      * liquidity pool tokens.
      */
     function _isTaxless(address addr) private view returns (bool) {
-        return addr == _routerAddr || addr == owner();
+        return
+            addr == _routerAddr ||
+            addr == _reserveAddr ||
+            addr == owner() ||
+            address(this);
     }
 
     /**
@@ -1127,6 +1134,18 @@ contract BEP20Token is Context, IBEP20, Ownable {
     function setTreasuryAddr(address treasury) external onlyOwner {
         require(treasury != address(0), "Kenshi: cannot set treasury to 0x0");
         _treasuryAddr = treasury;
+    }
+
+    /**
+     * @dev Sets `reserve` addr for accepting payments in Kenshi.
+     *
+     * Requirements:
+     *
+     * - `reserve` should not be address(0)
+     */
+    function setReserveAddr(address reserve) external onlyOwner {
+        require(reserve != address(0), "Kenshi: cannot set reserve to 0x0");
+        _reserveAddr = reserve;
     }
 
     /**
