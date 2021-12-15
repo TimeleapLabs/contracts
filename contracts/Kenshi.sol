@@ -751,11 +751,7 @@ contract BEP20Token is Context, IBEP20, Ownable {
 
         emit Transfer(sender, recipient, amount.sub(burn).sub(tax));
 
-        _circulation = _totalSupply
-            .sub(_balances[_dexAddr])
-            .sub(_balances[_burnAddr])
-            .sub(_balances[_treasuryAddr])
-            .sub(_balances[address(this)]);
+        _circulation = _totalSupply.sub(_totalExcluded());
 
         emit Reflect(reward);
 
@@ -834,6 +830,19 @@ contract BEP20Token is Context, IBEP20, Ownable {
     }
 
     /**
+     * @dev Check if `addr` is excluded from rewards.
+     */
+    function _totalExcluded() private view returns (uint256) {
+        return
+            balanceOf(owner())
+                .add(balanceOf(_dexAddr))
+                .add(balanceOf(_routerAddr))
+                .add(balanceOf(_treasuryAddr))
+                .add(balanceOf(_reserveAddr))
+                .add(balanceOf(address(this)));
+    }
+
+    /**
      * @dev Check if a tx for `addr` should be tax-less.
      *
      * Owner transaction should be tax-less, this is either a
@@ -848,7 +857,7 @@ contract BEP20Token is Context, IBEP20, Ownable {
             addr == _routerAddr ||
             addr == _reserveAddr ||
             addr == owner() ||
-            address(this);
+            addr == address(this);
     }
 
     /**
@@ -994,13 +1003,7 @@ contract BEP20Token is Context, IBEP20, Ownable {
         );
 
         _balances[sender] = _balances[sender].sub(outgoing);
-
-        _circulation = _totalSupply
-            .sub(_balances[_dexAddr])
-            .sub(_balances[_burnAddr])
-            .sub(_balances[_treasuryAddr])
-            .sub(_balances[address(this)]);
-
+        _circulation = _totalSupply.sub(_totalExcluded());
         _balanceCoeff = _balanceCoeff.sub(
             _balanceCoeff.mul(amount).div(_circulation)
         );

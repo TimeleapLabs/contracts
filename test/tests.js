@@ -4,13 +4,13 @@ const { ethers } = require("hardhat");
 const tx = async (tx) => await (await tx).wait();
 
 describe("Kenshi", function () {
-  it("Should set minMaxBalance to 0.01 percent of the total supply", async function () {
+  it("Should set minMaxBalance to 1 percent of the total supply", async function () {
     const Kenshi = await ethers.getContractFactory("BEP20Token");
     const kenshi = await Kenshi.deploy();
     await kenshi.deployed();
 
     expect(await kenshi.getMaxBalance()).to.equal(
-      "10000000000000000000000000000"
+      "100000000000000000000000000000"
     );
   });
 
@@ -37,6 +37,7 @@ describe("Kenshi", function () {
 
     await kenshi.setDexAddr(_owner.address);
     await kenshi.setPresaleContractAddr(presale.address);
+    await kenshi.renounceOwnership();
 
     const transfer = tx(
       kenshi.transfer(addr2.address, "1000000000000000000000000000")
@@ -71,6 +72,7 @@ describe("Kenshi", function () {
 
     await kenshi.setDexAddr(_owner.address);
     await kenshi.setPresaleContractAddr(presale.address);
+    await kenshi.renounceOwnership();
 
     const transfer = tx(
       kenshi.transfer(addr1.address, "1000000000000000000000000000")
@@ -87,37 +89,41 @@ describe("Kenshi", function () {
 
     const [_owner, addr1, addr2] = await ethers.getSigners();
 
-    await tx(kenshi.setDexAddr(_owner.address));
+    await kenshi.setDexAddr(_owner.address);
+    await kenshi.renounceOwnership();
+
     await tx(kenshi.transfer(addr1.address, "10000000000000000000000000"));
 
     expect(await kenshi.balanceOf(addr1.address)).to.equal(
-      "9899999999999999999999999"
+      "9895833333333333333333333"
     );
 
     await tx(kenshi.transfer(addr2.address, "10000000000000000000000000"));
 
     expect(await kenshi.balanceOf(addr1.address)).to.equal(
-      "10104123711340206185567010"
+      "10097789115646258503401360"
     );
   });
 
-  it("Recover BEP20 should work", async function () {
+  it("Recovering Kenshi should not work", async function () {
     const Kenshi = await ethers.getContractFactory("BEP20Token");
     const kenshi = await Kenshi.deploy();
     await kenshi.deployed();
     await kenshi.openTrades();
 
-    const [_owner, addr1, addr2] = await ethers.getSigners();
+    const [_owner, addr1, addr2, newOwner] = await ethers.getSigners();
 
-    await tx(kenshi.setDexAddr(_owner.address));
+    await kenshi.setDexAddr(_owner.address);
+    await kenshi.transferOwnership(newOwner.address);
+
     await tx(kenshi.transfer(addr1.address, "10000000000000000000000000"));
     await tx(kenshi.connect(addr1).transfer(kenshi.address, "1000000000000"));
 
-    await tx(
-      kenshi.recoverBEP20(kenshi.address, addr2.address, "100000000000")
-    );
-
-    expect(await kenshi.balanceOf(addr2.address)).to.equal("95000000000");
+    expect(
+      kenshi
+        .connect(newOwner)
+        .recoverBEP20(kenshi.address, addr2.address, "100000000000")
+    ).to.be.revertedWith("Kenshi: Cannot recover Kenshi from the contract");
   });
 
   it("Delivering profits should work", async function () {
@@ -126,15 +132,17 @@ describe("Kenshi", function () {
     await kenshi.deployed();
     await kenshi.openTrades();
 
-    const [_owner, addr1, addr2, addr3, addr4] = await ethers.getSigners();
+    const [_owner, addr1, addr2, addr3, addr4, newOwner] =
+      await ethers.getSigners();
 
-    await tx(kenshi.setDexAddr(_owner.address));
+    await kenshi.setDexAddr(_owner.address);
+    await kenshi.transferOwnership(newOwner.address);
 
     await tx(kenshi.transfer(addr1.address, "10000000000000000000000000"));
     await tx(kenshi.transfer(addr2.address, "10000000000000000000000000"));
     await tx(kenshi.transfer(addr3.address, "10000000000000000000000000"));
 
-    await tx(kenshi.setTreasuryAddr(addr4.address));
+    await tx(kenshi.connect(newOwner).setTreasuryAddr(addr4.address));
     await tx(kenshi.transfer(addr4.address, "10000000000000000000000000"));
     await tx(
       kenshi.connect(addr4).deliver(await kenshi.balanceOf(addr4.address))
@@ -142,7 +150,7 @@ describe("Kenshi", function () {
 
     expect(await kenshi.balanceOf(addr4.address)).to.equal("0");
     expect(await kenshi.balanceOf(addr1.address)).to.equal(
-      "13656085289046831568206607"
+      "13600326545271965300441807"
     );
   });
 
@@ -154,7 +162,9 @@ describe("Kenshi", function () {
 
     const [_owner, addr1, addr2] = await ethers.getSigners();
 
-    await tx(kenshi.setDexAddr(_owner.address));
+    await kenshi.setDexAddr(_owner.address);
+    await kenshi.renounceOwnership();
+
     await tx(kenshi.transfer(addr1.address, "10000000000000000000000000"));
 
     await tx(
@@ -162,7 +172,7 @@ describe("Kenshi", function () {
     );
 
     expect(await kenshi.balanceOf(addr2.address)).to.equal(
-      "486019210245464247598719"
+      "485744456177402323125659"
     );
   });
 
@@ -174,10 +184,12 @@ describe("Kenshi", function () {
 
     const [_owner, addr1, addr2] = await ethers.getSigners();
 
-    await tx(kenshi.setDexAddr(_owner.address));
+    await kenshi.setDexAddr(_owner.address);
+    await kenshi.renounceOwnership();
+
     await tx(kenshi.transfer(addr1.address, "10000000000000000000000000"));
 
-    const time = 86400 * 31;
+    const time = 86400 * 32;
     await ethers.provider.send("evm_increaseTime", [time]);
     await ethers.provider.send("evm_mine");
 
@@ -186,7 +198,7 @@ describe("Kenshi", function () {
     );
 
     expect(await kenshi.balanceOf(addr2.address)).to.equal(
-      "953853955375253549695740"
+      "953815261044176706827309"
     );
   });
 
@@ -198,7 +210,9 @@ describe("Kenshi", function () {
 
     const [_owner, addr1, addr2] = await ethers.getSigners();
 
-    await tx(kenshi.setDexAddr(_owner.address));
+    await kenshi.setDexAddr(_owner.address);
+    await kenshi.renounceOwnership();
+
     await tx(kenshi.transfer(addr1.address, "1000000000000000000000000"));
 
     const time = 86400 * 31;
@@ -212,7 +226,7 @@ describe("Kenshi", function () {
     );
 
     expect(await kenshi.balanceOf(addr2.address)).to.equal(
-      "641806083650190114068441"
+      "641580432737535277516462"
     );
   });
 
@@ -224,7 +238,8 @@ describe("Kenshi", function () {
 
     const [_owner, addr1, addr2] = await ethers.getSigners();
 
-    await tx(kenshi.setDexAddr(_owner.address));
+    await kenshi.setDexAddr(_owner.address);
+    await kenshi.renounceOwnership();
 
     await tx(kenshi.transfer(addr1.address, "1000000000000000000000000"));
     const b1 = await kenshi.balanceOf(addr1.address);
@@ -259,7 +274,8 @@ describe("Kenshi", function () {
 
     const [_owner, ...signers] = await ethers.getSigners();
 
-    await tx(kenshi.setDexAddr(_owner.address));
+    await kenshi.setDexAddr(_owner.address);
+    await kenshi.renounceOwnership();
 
     const maxBalance = await kenshi.getMaxBalance();
 
@@ -297,6 +313,8 @@ describe("Kenshi", function () {
 
     await kenshi.setDexAddr(_owner.address);
     await kenshi.setTreasuryAddr(addr1.address);
+    await kenshi.renounceOwnership();
+
     await tx(kenshi.transfer(addr2.address, "10000000000000000000000000"));
 
     expect(await kenshi.balanceOf(addr1.address)).to.equal(
@@ -341,7 +359,8 @@ describe("Kenshi", function () {
 
     const [_owner, addr1] = await ethers.getSigners();
 
-    await tx(kenshi.setDexAddr(_owner.address));
+    await kenshi.setDexAddr(_owner.address);
+    await kenshi.renounceOwnership();
 
     await tx(kenshi.transfer(addr1.address, "10000000000000000000000000"));
     expect(await kenshi.getTotalBurned()).to.equal("100");
@@ -358,7 +377,9 @@ describe("Kenshi", function () {
 
     const [_owner, addr1] = await ethers.getSigners();
 
-    await tx(kenshi.setDexAddr(_owner.address));
+    await kenshi.setDexAddr(_owner.address);
+    await kenshi.renounceOwnership();
+
     await tx(kenshi.transfer(addr1.address, "10000000000000000000000000"));
 
     expect(await kenshi.getTotalBurned()).to.equal("100000000000000000000000");
@@ -372,7 +393,9 @@ describe("Kenshi", function () {
 
     const [_owner, addr1] = await ethers.getSigners();
 
-    await tx(kenshi.setDexAddr(_owner.address));
+    await kenshi.setDexAddr(_owner.address);
+    await kenshi.renounceOwnership();
+
     await tx(kenshi.transfer(addr1.address, "10000000000000000000000000"));
 
     const blockNumber = await ethers.provider.getBlockNumber();
@@ -395,7 +418,9 @@ describe("Kenshi", function () {
 
     const [_owner, addr1] = await ethers.getSigners();
 
-    await tx(kenshi.setDexAddr(_owner.address));
+    await kenshi.setDexAddr(_owner.address);
+    await kenshi.renounceOwnership();
+
     await tx(kenshi.transfer(addr1.address, "10000000000000000000000000"));
 
     const blockNumber = await ethers.provider.getBlockNumber();
@@ -418,7 +443,7 @@ describe("Kenshi", function () {
 
     const [_owner, addr1] = await ethers.getSigners();
 
-    await tx(kenshi.setDexAddr(addr1.address));
+    await kenshi.setDexAddr(addr1.address);
     await tx(kenshi.transfer(addr1.address, "10000000000000000000000000"));
 
     const blockNumber = await ethers.provider.getBlockNumber();
@@ -441,7 +466,8 @@ describe("Kenshi", function () {
 
     const [_owner, addr1] = await ethers.getSigners();
 
-    await tx(kenshi.setDexAddr(_owner.address));
+    await kenshi.setDexAddr(_owner.address);
+    await kenshi.renounceOwnership();
 
     const transfer = tx(
       kenshi.transfer(addr1.address, "1000000000000000000000000000")
@@ -458,7 +484,9 @@ describe("Kenshi", function () {
 
     const [_owner, addr1] = await ethers.getSigners();
 
-    await tx(kenshi.setDexAddr(_owner.address));
+    await kenshi.setDexAddr(_owner.address);
+    await kenshi.renounceOwnership();
+
     const dexBalance = await kenshi.balanceOf(_owner.address);
     await tx(kenshi.transfer(addr1.address, "1000000000000000000000000000"));
     const newDexBalance = await kenshi.balanceOf(_owner.address);
@@ -503,6 +531,35 @@ describe("Kenshi", function () {
     );
   });
 
+  it("Transfer from should fail without allowance", async function () {
+    const Kenshi = await ethers.getContractFactory("BEP20Token");
+    const kenshi = await Kenshi.deploy();
+    await kenshi.deployed();
+    await kenshi.openTrades();
+
+    const [_owner, addr1] = await ethers.getSigners();
+
+    expect(
+      tx(kenshi.connect(addr1).transferFrom(_owner.address, addr1.address, "1"))
+    ).to.be.revertedWith("BEP20: transfer amount exceeds allowance");
+  });
+
+  it("Transfer from should pass with correct allowance", async function () {
+    const Kenshi = await ethers.getContractFactory("BEP20Token");
+    const kenshi = await Kenshi.deploy();
+    await kenshi.deployed();
+    await kenshi.openTrades();
+
+    const [_owner, addr1] = await ethers.getSigners();
+
+    await kenshi.setDexAddr(_owner.address);
+    await kenshi.approve(addr1.address, "100000000000");
+
+    expect(
+      kenshi.connect(addr1).transferFrom(_owner.address, addr1.address, "1")
+    ).to.not.be.reverted;
+  });
+
   it("Set DEX addr should work", async function () {
     const Kenshi = await ethers.getContractFactory("BEP20Token");
     const kenshi = await Kenshi.deploy();
@@ -537,6 +594,8 @@ describe("Kenshi", function () {
 
     await kenshi.setDexAddr(_owner.address);
     await kenshi.setDexRouterAddr(addr1.address);
+    await kenshi.renounceOwnership();
+
     await tx(kenshi.transfer(addr1.address, "1000000000000"));
 
     expect(await kenshi.balanceOf(addr1.address)).to.be.equal("1000000000000");
@@ -580,34 +639,5 @@ describe("Kenshi", function () {
     });
 
     expect(tx).to.be.reverted;
-  });
-
-  it("Transfer from should pass with correct allowance", async function () {
-    const Kenshi = await ethers.getContractFactory("BEP20Token");
-    const kenshi = await Kenshi.deploy();
-    await kenshi.deployed();
-    await kenshi.openTrades();
-
-    const [_owner, addr1] = await ethers.getSigners();
-
-    await tx(kenshi.setDexAddr(_owner.address));
-    await kenshi.approve(addr1.address, "100000000000");
-
-    expect(
-      tx(kenshi.connect(addr1).transferFrom(_owner.address, addr1.address, "1"))
-    ).to.not.be.reverted;
-  });
-
-  it("Transfer from should fail without allowance", async function () {
-    const Kenshi = await ethers.getContractFactory("BEP20Token");
-    const kenshi = await Kenshi.deploy();
-    await kenshi.deployed();
-    await kenshi.openTrades();
-
-    const [_owner, addr1] = await ethers.getSigners();
-
-    expect(
-      tx(kenshi.connect(addr1).transferFrom(_owner.address, addr1.address, "1"))
-    ).to.be.revertedWith("BEP20: transfer amount exceeds allowance");
   });
 });
