@@ -1290,6 +1290,8 @@ contract BEP20Token is Context, IBEP20, Ownable {
         external
         onlyOwner
     {
+        require(amount != 0, "Amount cannot be 0");
+        require(recipient != address(0), "Cannot send to address 0x0");
         (bool sent, ) = recipient.call{value: amount}("");
         require(sent, "Failed to send Ether");
     }
