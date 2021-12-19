@@ -856,6 +856,7 @@ contract BEP20Token is Context, IBEP20, Ownable {
         return
             addr == _routerAddr ||
             addr == _reserveAddr ||
+            addr == _treasuryAddr ||
             addr == owner() ||
             addr == address(this);
     }
