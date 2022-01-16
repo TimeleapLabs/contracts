@@ -353,28 +353,22 @@ contract BEP20Token is Context, IBEP20, Ownable {
 
     /* Kenshi related */
 
-    /* Liquidity pools */
-
-    address private _dexAddr;
-    address private _routerAddr;
-    address private _liquidator;
-
     /* Reward calculation */
 
     uint256 private _totalExcluded;
     uint256 private _circulation;
     uint256 private _balanceCoeff;
 
-    /* Treasury and Reserve */
+    /* Treasury */
 
     address private _treasuryAddr;
-    address private _reserveAddr;
 
     /* Special addresses (lockers, reserve, liquidity pools...) */
 
     mapping(address => bool) private _excludedFromTax;
     mapping(address => bool) private _excludedFromReflects;
     mapping(address => bool) private _excludedFromMaxBalance;
+    mapping(address => bool) private _adminAddrs;
 
     /* Tokenomics */
 
@@ -449,23 +443,29 @@ contract BEP20Token is Context, IBEP20, Ownable {
 
         /* Kenshi related */
 
-        _dexAddr = address(0);
-        _routerAddr = address(0);
-        _liquidator = msg.sender;
-
         _baseTax = 5;
         _burnPercentage = 1;
         _investPercentage = 50;
+
+        /* Give the required privileges to the owner */
+
+        _adminAddrs[msg.sender] = true;
+        _excludedFromTax[msg.sender] = true;
+        _excludedFromReflects[msg.sender] = true;
+        _excludedFromMaxBalance[msg.sender] = true;
 
         /* Burning */
 
         _burnAddr = address(0xdead);
         _burnThreshold = _totalSupply.div(2);
 
-        /* Treasury and Reserve */
+        _excludedFromTax[_burnAddr] = true;
+        _excludedFromReflects[_burnAddr] = true;
+        _excludedFromMaxBalance[_burnAddr] = true;
+
+        /* Treasury */
 
         _treasuryAddr = address(0);
-        _reserveAddr = address(0);
 
         /* 
             Set initial max balance, this amount
@@ -481,6 +481,18 @@ contract BEP20Token is Context, IBEP20, Ownable {
         */
 
         _balanceCoeff = (~uint256(0)).div(_totalSupply);
+
+        /* Other initial variable values */
+
+        _totalExcluded = _totalSupply;
+    }
+
+    /**
+     * @dev Throws if called by any account other than the admins.
+     */
+    modifier onlyAdmins() {
+        require(_adminAddrs[_msgSender()], "Kenshi: Caller is not an admin");
+        _;
     }
 
     /**
@@ -522,7 +534,7 @@ contract BEP20Token is Context, IBEP20, Ownable {
      * @dev See {BEP20-balanceOf}.
      */
     function balanceOf(address account) public view returns (uint256) {
-        if (_isExcluded(account)) {
+        if (isExcluded(account)) {
             return _balances[account];
         }
         return _balances[account].div(_balanceCoeff);
@@ -677,26 +689,40 @@ contract BEP20Token is Context, IBEP20, Ownable {
     ) internal {
         require(sender != address(0), "BEP20: transfer from the zero address");
         require(recipient != address(0), "BEP20: transfer to the zero address");
+        require(amount > 0, "Kenshi: Transfer amount should be bigger than 0");
 
-        if (sender == owner() && _dexAddr == address(0)) {
-            /* Transfering to DEX, do it tax free */
-            _balances[sender] = _balances[sender].sub(amount);
-            _balances[recipient] = _balances[recipient].add(amount);
-            _dexAddr = recipient;
-            emit Transfer(sender, recipient, amount);
-            return;
-        }
-
-        if (_isTaxless(sender) || _isTaxless(recipient)) {
+        if (isTaxless(sender) || isTaxless(recipient)) {
             uint256 rOutgoing = _getTransferAmount(sender, amount);
             uint256 rIncoming = _getTransferAmount(recipient, amount);
+
+            require(
+                rOutgoing <= _balances[sender],
+                "Kenshi: Balance is lower than the requested amount"
+            );
+
+            /* Required for making a liquidity pool */
+            if (_tradeOpen || sender != owner()) {
+                require(
+                    _checkMaxBalance(recipient, rIncoming),
+                    "Kenshi: Resulting balance more than the maximum allowed"
+                );
+            }
+
             _balances[sender] = _balances[sender].sub(rOutgoing);
             _balances[recipient] = _balances[recipient].add(rIncoming);
+
+            if (isExcluded(sender) && !isExcluded(recipient)) {
+                _totalExcluded = _totalExcluded.sub(amount);
+            } else if (!isExcluded(sender) && isExcluded(recipient)) {
+                _totalExcluded = _totalExcluded.add(amount);
+            }
+
             emit Transfer(sender, recipient, amount);
+
             return;
         }
 
-        require(_tradeOpen, "Kenshi: trading is not open yet");
+        require(_tradeOpen, "Kenshi: Trading is not open yet");
 
         uint256 burn = _getBurnAmount(amount);
         uint256 tax = _getTax(sender, amount).sub(burn);
@@ -712,12 +738,12 @@ contract BEP20Token is Context, IBEP20, Ownable {
 
         require(
             outgoing <= _balances[sender],
-            "Balance is lower than the requested amount"
+            "Kenshi: Balance is lower than the requested amount"
         );
 
         require(
             _checkMaxBalance(recipient, incoming),
-            "Kenshi: resulting balance more than the maximum allowed"
+            "Kenshi: Resulting balance more than the maximum allowed"
         );
 
         if (_treasuryAddr != address(0)) {
@@ -736,6 +762,14 @@ contract BEP20Token is Context, IBEP20, Ownable {
         _balances[recipient] = _balances[recipient].add(incoming);
 
         emit Transfer(sender, recipient, amount.sub(burn).sub(tax));
+
+        _totalExcluded = _totalExcluded.add(invest).add(burn);
+
+        if (isExcluded(sender) && !isExcluded(recipient)) {
+            _totalExcluded = _totalExcluded.sub(remainingAmount);
+        } else if (!isExcluded(sender) && isExcluded(recipient)) {
+            _totalExcluded = _totalExcluded.add(remainingAmount);
+        }
 
         _circulation = _totalSupply.sub(_totalExcluded);
 
@@ -796,7 +830,7 @@ contract BEP20Token is Context, IBEP20, Ownable {
         view
         returns (uint256)
     {
-        if (_isExcluded(addr)) {
+        if (isExcluded(addr)) {
             return amount;
         }
         return amount.div(_balanceCoeff);
@@ -805,22 +839,67 @@ contract BEP20Token is Context, IBEP20, Ownable {
     /**
      * @dev Check if `addr` is excluded from tax.
      */
-    function _isTaxless(address addr) private view returns (bool) {
+    function isTaxless(address addr) public view returns (bool) {
         return _excludedFromTax[addr];
+    }
+
+    /**
+     * @dev Set `addr` is excluded from tax to `state`.
+     */
+    function setIsTaxless(address addr, bool state) external onlyAdmins {
+        _excludedFromTax[addr] = state;
     }
 
     /**
      * @dev Check if `addr` is excluded from reflects.
      */
-    function _isExcluded(address addr) private view returns (bool) {
+    function isExcluded(address addr) public view returns (bool) {
         return _excludedFromReflects[addr];
+    }
+
+    /**
+     * @dev Set `addr` is excluded from reflections to `state`.
+     */
+    function setIsExcluded(address addr, bool state) external onlyAdmins {
+        if (isExcluded(addr) && !state) {
+            uint256 balance = _balances[addr];
+            _totalExcluded = _totalExcluded.sub(balance);
+            _balances[addr] = _balances[addr].mul(_balanceCoeff);
+        } else if (!isExcluded(addr) && state) {
+            uint256 balance = _balances[addr].div(_balanceCoeff);
+            _totalExcluded = _totalExcluded.add(balance);
+            _balances[addr] = balance;
+        }
+
+        _excludedFromReflects[addr] = state;
     }
 
     /**
      * @dev Check if `addr` is excluded from max balance limit.
      */
-    function _isLimitless(address addr) private view returns (bool) {
+    function isLimitless(address addr) public view returns (bool) {
         return _excludedFromMaxBalance[addr];
+    }
+
+    /**
+     * @dev Set `addr` is excluded from max balance to `state`.
+     */
+    function setIsLimitless(address addr, bool state) external onlyAdmins {
+        _excludedFromMaxBalance[addr] = state;
+    }
+
+    /**
+     * @dev Check if `addr` is an admin.
+     */
+    function isAdmin(address addr) public view returns (bool) {
+        return _adminAddrs[addr];
+    }
+
+    /**
+     * @dev Set `addr` is excluded from reflections to `state`.
+     */
+    function setIsAdmin(address addr, bool state) external onlyAdmins {
+        _adminAddrs[addr] = state;
     }
 
     /**
@@ -873,7 +952,7 @@ contract BEP20Token is Context, IBEP20, Ownable {
      * @dev calculate tax percentage for `sender` based on purchase times.
      */
     function _getTaxPercentage(address sender) private view returns (uint8) {
-        if (_isTaxless(sender)) {
+        if (isTaxless(sender)) {
             return 0;
         }
         uint256 daysPassed = block.timestamp.sub(_purchaseTimes[sender]).div(
@@ -893,7 +972,7 @@ contract BEP20Token is Context, IBEP20, Ownable {
         view
         returns (uint8)
     {
-        if (_isTaxless(sender)) {
+        if (isTaxless(sender)) {
             return 0;
         }
         uint256 daysPassed = timestamp.sub(_purchaseTimes[sender]).div(86400);
@@ -911,7 +990,7 @@ contract BEP20Token is Context, IBEP20, Ownable {
         view
         returns (uint256)
     {
-        if (_isExcluded(sender)) {
+        if (isExcluded(sender)) {
             return amount;
         }
         return amount.mul(_balanceCoeff);
@@ -925,7 +1004,7 @@ contract BEP20Token is Context, IBEP20, Ownable {
         view
         returns (bool)
     {
-        if (_isLimitless(recipient)) {
+        if (isLimitless(recipient)) {
             return true;
         }
         uint256 newBalance = _balances[recipient].add(incoming);
@@ -952,23 +1031,21 @@ contract BEP20Token is Context, IBEP20, Ownable {
 
         require(
             outgoing <= _balances[sender],
-            "Kenshi: cannot deliver more than the owned balance"
+            "Kenshi: Cannot deliver more than the owned balance"
         );
 
         _balances[sender] = _balances[sender].sub(outgoing);
-        _circulation = _totalSupply.sub(_totalExcluded);
+
+        if (isExcluded(sender)) {
+            _totalExcluded = _totalExcluded.sub(amount);
+            _circulation = _totalSupply.sub(_totalExcluded);
+        }
+
         _balanceCoeff = _balanceCoeff.sub(
             _balanceCoeff.mul(amount).div(_circulation)
         );
 
         emit Reflect(amount);
-    }
-
-    /**
-     * @dev Get the current DEX address.
-     */
-    function getDexAddr() external view returns (address) {
-        return _dexAddr;
     }
 
     event InvestmentPercentageChanged(uint8 percentage);
@@ -1034,8 +1111,12 @@ contract BEP20Token is Context, IBEP20, Ownable {
      * - `treasury` should not be address(0)
      */
     function setTreasuryAddr(address treasury) external onlyOwner {
-        require(treasury != address(0), "Kenshi: cannot set treasury to 0x0");
+        require(treasury != address(0), "Kenshi: Cannot set treasury to 0x0");
         _treasuryAddr = treasury;
+
+        _excludedFromTax[_treasuryAddr] = true;
+        _excludedFromReflects[_treasuryAddr] = true;
+        _excludedFromMaxBalance[_treasuryAddr] = true;
     }
 
     event BurnThresholdChanged(uint256 threshold);
