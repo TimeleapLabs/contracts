@@ -135,132 +135,6 @@ contract Context {
 }
 
 /**
- * @dev Wrappers over Solidity's arithmetic operations with added overflow
- * checks.
- *
- * Arithmetic operations in Solidity wrap on overflow. This can easily result
- * in bugs, because programmers usually assume that an overflow raises an
- * error, which is the standard behavior in high level programming languages.
- * `SafeMath` restores this intuition by reverting the transaction when an
- * operation overflows.
- *
- * Using this library instead of the unchecked operations eliminates an entire
- * class of bugs, so it's recommended to use it always.
- */
-library SafeMath {
-    /**
-     * @dev Returns the addition of two unsigned integers, reverting on
-     * overflow.
-     *
-     * Counterpart to Solidity's `+` operator.
-     *
-     * Requirements:
-     * - Addition cannot overflow.
-     */
-    function add(uint256 a, uint256 b) internal pure returns (uint256) {
-        uint256 c = a + b;
-        require(c >= a, "SafeMath: addition overflow");
-
-        return c;
-    }
-
-    /**
-     * @dev Returns the subtraction of two unsigned integers, reverting on
-     * overflow (when the result is negative).
-     *
-     * Counterpart to Solidity's `-` operator.
-     *
-     * Requirements:
-     * - Subtraction cannot overflow.
-     */
-    function sub(uint256 a, uint256 b) internal pure returns (uint256) {
-        return sub(a, b, "SafeMath: subtraction overflow");
-    }
-
-    /**
-     * @dev Returns the subtraction of two unsigned integers, reverting with custom message on
-     * overflow (when the result is negative).
-     *
-     * Counterpart to Solidity's `-` operator.
-     *
-     * Requirements:
-     * - Subtraction cannot overflow.
-     */
-    function sub(
-        uint256 a,
-        uint256 b,
-        string memory errorMessage
-    ) internal pure returns (uint256) {
-        require(b <= a, errorMessage);
-        uint256 c = a - b;
-
-        return c;
-    }
-
-    /**
-     * @dev Returns the multiplication of two unsigned integers, reverting on
-     * overflow.
-     *
-     * Counterpart to Solidity's `*` operator.
-     *
-     * Requirements:
-     * - Multiplication cannot overflow.
-     */
-    function mul(uint256 a, uint256 b) internal pure returns (uint256) {
-        // Gas optimization: this is cheaper than requiring 'a' not being zero, but the
-        // benefit is lost if 'b' is also tested.
-        // See: https://github.com/OpenZeppelin/openzeppelin-contracts/pull/522
-        if (a == 0) {
-            return 0;
-        }
-
-        uint256 c = a * b;
-        require(c / a == b, "SafeMath: multiplication overflow");
-
-        return c;
-    }
-
-    /**
-     * @dev Returns the integer division of two unsigned integers. Reverts on
-     * division by zero. The result is rounded towards zero.
-     *
-     * Counterpart to Solidity's `/` operator. Note: this function uses a
-     * `revert` opcode (which leaves remaining gas untouched) while Solidity
-     * uses an invalid opcode to revert (consuming all remaining gas).
-     *
-     * Requirements:
-     * - The divisor cannot be zero.
-     */
-    function div(uint256 a, uint256 b) internal pure returns (uint256) {
-        return div(a, b, "SafeMath: division by zero");
-    }
-
-    /**
-     * @dev Returns the integer division of two unsigned integers. Reverts with custom message on
-     * division by zero. The result is rounded towards zero.
-     *
-     * Counterpart to Solidity's `/` operator. Note: this function uses a
-     * `revert` opcode (which leaves remaining gas untouched) while Solidity
-     * uses an invalid opcode to revert (consuming all remaining gas).
-     *
-     * Requirements:
-     * - The divisor cannot be zero.
-     */
-    function div(
-        uint256 a,
-        uint256 b,
-        string memory errorMessage
-    ) internal pure returns (uint256) {
-        // Solidity only automatically asserts when dividing by 0
-        require(b > 0, errorMessage);
-        uint256 c = a / b;
-        // assert(a == b * c + a % b); // There is no case in which this doesn't hold
-
-        return c;
-    }
-}
-
-/**
  * @dev Contract module which provides a basic access control mechanism, where
  * there is an account (an owner) that can be granted exclusive access to
  * specific functions.
@@ -338,8 +212,6 @@ contract Ownable is Context {
 }
 
 contract BEP20Token is Context, IBEP20, Ownable {
-    using SafeMath for uint256;
-
     /* BEP20 related */
 
     mapping(address => uint256) private _balances;
@@ -430,13 +302,13 @@ contract BEP20Token is Context, IBEP20, Ownable {
         _symbol = "KENSHI";
 
         /*
-            Large supply and large decimal places were 
+            Large supply and large decimal places are 
             to help with the accuracy loss caused by
             the reward system.
         */
 
         _decimals = 18;
-        _totalSupply = 1e13 * 1e18;
+        _totalSupply = 10e12 * 1e18;
         _balances[msg.sender] = _totalSupply;
 
         emit Transfer(address(0), msg.sender, _totalSupply);
@@ -457,7 +329,7 @@ contract BEP20Token is Context, IBEP20, Ownable {
         /* Burning */
 
         _burnAddr = address(0xdead);
-        _burnThreshold = _totalSupply.div(2);
+        _burnThreshold = _totalSupply / 2;
 
         _excludedFromTax[_burnAddr] = true;
         _excludedFromReflects[_burnAddr] = true;
@@ -472,7 +344,7 @@ contract BEP20Token is Context, IBEP20, Ownable {
             increases over time
         */
 
-        _minMaxBalance = _totalSupply.div(100);
+        _minMaxBalance = _totalSupply / 100;
 
         /*
             This value gives us maximum precision without
@@ -480,7 +352,7 @@ contract BEP20Token is Context, IBEP20, Ownable {
             updating the _totalSupply or the value below.
         */
 
-        _balanceCoeff = (~uint256(0)).div(_totalSupply);
+        _balanceCoeff = (~uint256(0)) / _totalSupply;
 
         /* Other initial variable values */
 
@@ -537,7 +409,7 @@ contract BEP20Token is Context, IBEP20, Ownable {
         if (isExcluded(account)) {
             return _balances[account];
         }
-        return _balances[account].div(_balanceCoeff);
+        return _balances[account] / _balanceCoeff;
     }
 
     /**
@@ -596,14 +468,15 @@ contract BEP20Token is Context, IBEP20, Ownable {
         address recipient,
         uint256 amount
     ) external returns (bool) {
+        require(
+            _allowances[sender][_msgSender()] > amount,
+            "BEP20: transfer amount exceeds allowance"
+        );
         _transfer(sender, recipient, amount);
         _approve(
             sender,
             _msgSender(),
-            _allowances[sender][_msgSender()].sub(
-                amount,
-                "BEP20: transfer amount exceeds allowance"
-            )
+            _allowances[sender][_msgSender()] - amount
         );
         return true;
     }
@@ -627,7 +500,7 @@ contract BEP20Token is Context, IBEP20, Ownable {
         _approve(
             _msgSender(),
             spender,
-            _allowances[_msgSender()][spender].add(addedValue)
+            _allowances[_msgSender()][spender] + addedValue
         );
         return true;
     }
@@ -650,13 +523,14 @@ contract BEP20Token is Context, IBEP20, Ownable {
         external
         returns (bool)
     {
+        require(
+            _allowances[_msgSender()][spender] > subtractedValue,
+            "BEP20: decreased allowance below zero"
+        );
         _approve(
             _msgSender(),
             spender,
-            _allowances[_msgSender()][spender].sub(
-                subtractedValue,
-                "BEP20: decreased allowance below zero"
-            )
+            _allowances[_msgSender()][spender] - subtractedValue
         );
         return true;
     }
@@ -708,13 +582,13 @@ contract BEP20Token is Context, IBEP20, Ownable {
                 );
             }
 
-            _balances[sender] = _balances[sender].sub(rOutgoing);
-            _balances[recipient] = _balances[recipient].add(rIncoming);
+            _balances[sender] = _balances[sender] - rOutgoing;
+            _balances[recipient] = _balances[recipient] + rIncoming;
 
             if (isExcluded(sender) && !isExcluded(recipient)) {
-                _totalExcluded = _totalExcluded.sub(amount);
+                _totalExcluded = _totalExcluded - amount;
             } else if (!isExcluded(sender) && isExcluded(recipient)) {
-                _totalExcluded = _totalExcluded.add(amount);
+                _totalExcluded = _totalExcluded + amount;
             }
 
             emit Transfer(sender, recipient, amount);
@@ -725,14 +599,14 @@ contract BEP20Token is Context, IBEP20, Ownable {
         require(_tradeOpen, "Kenshi: Trading is not open yet");
 
         uint256 burn = _getBurnAmount(amount);
-        uint256 tax = _getTax(sender, amount).sub(burn);
+        uint256 tax = _getTax(sender, amount) - burn;
 
         /* Split the tax */
 
-        uint256 invest = tax.mul(_investPercentage).div(100);
-        uint256 reward = tax.sub(invest);
+        uint256 invest = (tax * _investPercentage) / 100;
+        uint256 reward = tax - invest;
 
-        uint256 remainingAmount = amount.sub(tax).sub(burn);
+        uint256 remainingAmount = amount - tax - burn;
         uint256 outgoing = _getTransferAmount(sender, amount);
         uint256 incoming = _getTransferAmount(recipient, remainingAmount);
 
@@ -747,37 +621,35 @@ contract BEP20Token is Context, IBEP20, Ownable {
         );
 
         if (_treasuryAddr != address(0)) {
-            _balances[_treasuryAddr] = _balances[_treasuryAddr].add(invest);
+            _balances[_treasuryAddr] = _balances[_treasuryAddr] + invest;
             emit Transfer(sender, _treasuryAddr, invest);
         } else {
-            reward = reward.add(invest);
+            reward = reward + invest;
         }
 
         if (burn > 0) {
-            _balances[_burnAddr] = _balances[_burnAddr].add(burn);
+            _balances[_burnAddr] = _balances[_burnAddr] + burn;
             emit Transfer(sender, _burnAddr, burn);
         }
 
-        _balances[sender] = _balances[sender].sub(outgoing);
-        _balances[recipient] = _balances[recipient].add(incoming);
+        _balances[sender] = _balances[sender] - outgoing;
+        _balances[recipient] = _balances[recipient] + incoming;
 
-        emit Transfer(sender, recipient, amount.sub(burn).sub(tax));
+        emit Transfer(sender, recipient, amount - burn - tax);
 
-        _totalExcluded = _totalExcluded.add(invest).add(burn);
+        _totalExcluded = _totalExcluded + invest + burn;
 
         if (isExcluded(sender) && !isExcluded(recipient)) {
-            _totalExcluded = _totalExcluded.sub(remainingAmount);
+            _totalExcluded = _totalExcluded - remainingAmount;
         } else if (!isExcluded(sender) && isExcluded(recipient)) {
-            _totalExcluded = _totalExcluded.add(remainingAmount);
+            _totalExcluded = _totalExcluded + remainingAmount;
         }
 
-        _circulation = _totalSupply.sub(_totalExcluded);
+        _circulation = _totalSupply - _totalExcluded;
 
         emit Reflect(reward);
 
-        _balanceCoeff = _balanceCoeff.sub(
-            _balanceCoeff.mul(reward).div(_circulation)
-        );
+        _balanceCoeff = _balanceCoeff - (_balanceCoeff * reward) / _circulation;
 
         _recordPurchase(recipient, incoming);
     }
@@ -813,13 +685,12 @@ contract BEP20Token is Context, IBEP20, Ownable {
      * @dev Records weighted purchase times for fine calculation.
      */
     function _recordPurchase(address addr, uint256 amount) private {
-        uint256 current = _purchaseTimes[addr].mul(
-            _decoeff(addr, _balances[addr].sub(amount))
-        );
+        uint256 current = _purchaseTimes[addr] *
+            _decoeff(addr, _balances[addr] - amount);
 
-        _purchaseTimes[addr] = current
-            .add(block.timestamp.mul(_decoeff(addr, amount)))
-            .div(balanceOf(addr));
+        _purchaseTimes[addr] =
+            (current + block.timestamp * _decoeff(addr, amount)) /
+            balanceOf(addr);
     }
 
     /**
@@ -833,7 +704,7 @@ contract BEP20Token is Context, IBEP20, Ownable {
         if (isExcluded(addr)) {
             return amount;
         }
-        return amount.div(_balanceCoeff);
+        return amount / _balanceCoeff;
     }
 
     /**
@@ -863,11 +734,11 @@ contract BEP20Token is Context, IBEP20, Ownable {
     function setIsExcluded(address addr, bool state) external onlyAdmins {
         if (isExcluded(addr) && !state) {
             uint256 balance = _balances[addr];
-            _totalExcluded = _totalExcluded.sub(balance);
-            _balances[addr] = _balances[addr].mul(_balanceCoeff);
+            _totalExcluded = _totalExcluded - balance;
+            _balances[addr] = _balances[addr] * _balanceCoeff;
         } else if (!isExcluded(addr) && state) {
-            uint256 balance = _balances[addr].div(_balanceCoeff);
-            _totalExcluded = _totalExcluded.add(balance);
+            uint256 balance = _balances[addr] / _balanceCoeff;
+            _totalExcluded = _totalExcluded + balance;
             _balances[addr] = balance;
         }
 
@@ -914,9 +785,9 @@ contract BEP20Token is Context, IBEP20, Ownable {
         if (_burnedAmount >= _burnThreshold) {
             return 0;
         }
-        uint256 toBurn = amount.div(100);
-        if (_burnThreshold.sub(_burnedAmount) < toBurn) {
-            return _burnThreshold.sub(_burnedAmount);
+        uint256 toBurn = amount / 100;
+        if (_burnThreshold - _burnedAmount < toBurn) {
+            return _burnThreshold - _burnedAmount;
         }
         return toBurn;
     }
@@ -944,7 +815,7 @@ contract BEP20Token is Context, IBEP20, Ownable {
         returns (uint256)
     {
         uint8 taxPercentage = _getTaxPercentage(sender);
-        uint256 tax = amount.mul(taxPercentage).div(100);
+        uint256 tax = (amount * taxPercentage) / 100;
         return tax;
     }
 
@@ -952,30 +823,21 @@ contract BEP20Token is Context, IBEP20, Ownable {
      * @dev calculate tax percentage for `sender` based on purchase times.
      */
     function _getTaxPercentage(address sender) private view returns (uint8) {
-        if (isTaxless(sender)) {
-            return 0;
-        }
-        uint256 daysPassed = block.timestamp.sub(_purchaseTimes[sender]).div(
-            86400
-        );
-        if (daysPassed >= 30) {
-            return _baseTax;
-        }
-        return _baseTax + _earlySaleFines[daysPassed];
+        return getTaxPercentageAt(sender, block.timestamp);
     }
 
     /**
      * @dev calculate tax percentage for `sender` at `timestamp` based on purchase times.
      */
     function getTaxPercentageAt(address sender, uint256 timestamp)
-        external
+        public
         view
         returns (uint8)
     {
         if (isTaxless(sender)) {
             return 0;
         }
-        uint256 daysPassed = timestamp.sub(_purchaseTimes[sender]).div(86400);
+        uint256 daysPassed = (timestamp - _purchaseTimes[sender]) / 86400;
         if (daysPassed >= 30) {
             return _baseTax;
         }
@@ -993,7 +855,7 @@ contract BEP20Token is Context, IBEP20, Ownable {
         if (isExcluded(sender)) {
             return amount;
         }
-        return amount.mul(_balanceCoeff);
+        return amount * _balanceCoeff;
     }
 
     /**
@@ -1007,15 +869,15 @@ contract BEP20Token is Context, IBEP20, Ownable {
         if (isLimitless(recipient)) {
             return true;
         }
-        uint256 newBalance = _balances[recipient].add(incoming);
-        return newBalance.div(_balanceCoeff) <= getMaxBalance();
+        uint256 newBalance = _balances[recipient] + incoming;
+        return (newBalance / _balanceCoeff) <= getMaxBalance();
     }
 
     /**
      * @dev Returns the current maximum balance.
      */
     function getMaxBalance() public view returns (uint256) {
-        return _minMaxBalance.add(_circulation.div(100));
+        return _minMaxBalance + _circulation / 100;
     }
 
     /**
@@ -1034,16 +896,14 @@ contract BEP20Token is Context, IBEP20, Ownable {
             "Kenshi: Cannot deliver more than the owned balance"
         );
 
-        _balances[sender] = _balances[sender].sub(outgoing);
+        _balances[sender] = _balances[sender] - outgoing;
 
         if (isExcluded(sender)) {
-            _totalExcluded = _totalExcluded.sub(amount);
-            _circulation = _totalSupply.sub(_totalExcluded);
+            _totalExcluded = _totalExcluded - amount;
+            _circulation = _totalSupply - _totalExcluded;
         }
 
-        _balanceCoeff = _balanceCoeff.sub(
-            _balanceCoeff.mul(amount).div(_circulation)
-        );
+        _balanceCoeff = _balanceCoeff - (_balanceCoeff * amount) / _circulation;
 
         emit Reflect(amount);
     }

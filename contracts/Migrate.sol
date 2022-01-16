@@ -63,7 +63,7 @@ contract Migrate {
         require(msg.sender == _owner, "Kenshi: Only owner");
         require(addr != address(0), "Kenshi: Cannot set v2 addr to 0x0");
         _v2Addr = addr;
-        _v2Token = IBEP20(_v1Addr);
+        _v2Token = IBEP20(_v2Addr);
     }
 
     /**
