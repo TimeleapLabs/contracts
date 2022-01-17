@@ -82,7 +82,8 @@ describe("Kenshi", function () {
     await kenshi.deployed();
     await kenshi.openTrades();
 
-    const [_owner, dex, treasury, addr1, addr2] = await ethers.getSigners();
+    const [_owner, dex, treasury, addr1, addr2, addr3, addr4] =
+      await ethers.getSigners();
 
     await setupDEX(kenshi, dex);
     await setupTreasury(kenshi, treasury);
@@ -108,6 +109,29 @@ describe("Kenshi", function () {
 
     /* Note: rounding errors are negligible */
     expect(total).to.equal("9999999999999999999999999999999");
+  });
+
+  it("Burning should be tax-free", async function () {
+    const Kenshi = await ethers.getContractFactory("Kenshi");
+    const kenshi = await Kenshi.deploy();
+    await kenshi.deployed();
+    await kenshi.openTrades();
+
+    const [_owner, dex, addr1] = await ethers.getSigners();
+
+    await setupDEX(kenshi, dex);
+
+    await tx(
+      kenshi.connect(dex).transfer(addr1.address, "10000000000000000000000000")
+    );
+
+    const dead = "0x000000000000000000000000000000000000dead";
+
+    await kenshi.setIsFineFree(dead, true);
+    await kenshi.setIsTaxless(dead, true);
+    await tx(kenshi.connect(addr1).transfer(dead, "1000000000000000000000000"));
+
+    expect(await kenshi.balanceOf(dead)).to.equal("1100000000000000000000000");
   });
 
   it("Recovering Kenshi should not work", async function () {
@@ -162,6 +186,59 @@ describe("Kenshi", function () {
     expect(await kenshi.balanceOf(addr1.address)).to.equal(
       "13656085289046831568206607"
     );
+  });
+
+  it("The big friction test!", async function () {
+    const Kenshi = await ethers.getContractFactory("Kenshi");
+    const kenshi = await Kenshi.deploy();
+    await kenshi.deployed();
+    await kenshi.openTrades();
+
+    const [_owner, dex, ...rest] = await ethers.getSigners();
+
+    await setupDEX(kenshi, dex);
+
+    await kenshi.setIsExcluded(rest[4].address, true);
+
+    for (const addr of rest) {
+      await tx(
+        kenshi.connect(dex).transfer(addr.address, "10000000000000000000000000")
+      );
+    }
+
+    let times = 24;
+    const amount = "100000000000000000000000";
+
+    while (times--) {
+      const senders = rest
+        .map((value) => ({ value, sort: Math.random() }))
+        .sort((a, b) => a.sort - b.sort)
+        .map(({ value }) => value);
+
+      const recipients = rest
+        .map((value) => ({ value, sort: Math.random() }))
+        .sort((a, b) => a.sort - b.sort)
+        .map(({ value }) => value);
+
+      for (const index in senders) {
+        const sender = senders[index];
+        const recipient = recipients[index];
+        if (sender.address === recipient.address) continue;
+        if ((await kenshi.balanceOf(sender.address)).lt(amount)) continue;
+        await tx(kenshi.connect(sender).transfer(recipient.address, amount));
+      }
+    }
+
+    const balances = await Promise.all(
+      rest.map((addr) => kenshi.balanceOf(addr.address))
+    );
+    const addrBalances = balances.reduce((a, b) => a.add(b));
+    const dexBalance = await kenshi.balanceOf(dex.address);
+    const burned = await kenshi.getTotalBurned();
+    const total = addrBalances.add(dexBalance).add(burned);
+
+    /* Note: rounding errors are negligible */
+    expect(total.gt("9999999999999999999999999999990")).to.be.true;
   });
 
   it("Delivering profits should be friction-less", async function () {
@@ -454,7 +531,6 @@ describe("Kenshi", function () {
     await kenshi.openTrades();
 
     const [_owner, dex, addr1] = await ethers.getSigners();
-
     await setupDEX(kenshi, dex);
 
     await tx(
@@ -462,6 +538,32 @@ describe("Kenshi", function () {
     );
 
     expect(await kenshi.getTotalBurned()).to.equal("100000000000000000000000");
+  });
+
+  it("Set excluded should exclude addresses from reflections", async function () {
+    const Kenshi = await ethers.getContractFactory("Kenshi");
+    const kenshi = await Kenshi.deploy();
+    await kenshi.deployed();
+    await kenshi.openTrades();
+
+    const [_owner, dex, addr1, addr2] = await ethers.getSigners();
+    await setupDEX(kenshi, dex);
+
+    await kenshi.setIsExcluded(addr1.address, true);
+    const isExcluded = await kenshi.isExcluded(addr1.address);
+    expect(isExcluded).to.be.true;
+
+    await tx(
+      kenshi.connect(dex).transfer(addr1.address, "10000000000000000000000000")
+    );
+
+    await tx(
+      kenshi.connect(dex).transfer(addr2.address, "10000000000000000000000000")
+    );
+
+    expect(await kenshi.balanceOf(addr1.address)).to.equal(
+      "9500000000000000000000000"
+    );
   });
 
   it("Get tax percentage at should work", async function () {

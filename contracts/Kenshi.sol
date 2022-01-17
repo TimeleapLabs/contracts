@@ -644,18 +644,27 @@ contract Kenshi is Context, IBEP20, Ownable {
         _balances[sender] = _balances[sender] - outgoing;
         _balances[recipient] = _balances[recipient] + incoming;
 
-        emit Transfer(sender, recipient, amount - burn - tax);
+        emit Transfer(sender, recipient, remainingAmount);
 
-        if (isExcluded(sender) && !isExcluded(recipient)) {
+        if (isExcluded(sender)) {
             _totalExcluded = _totalExcluded - amount;
-        } else if (!isExcluded(sender) && isExcluded(recipient)) {
+        }
+
+        if (isExcluded(recipient)) {
             _totalExcluded = _totalExcluded + remainingAmount;
         }
 
         _circulation = _totalSupply - _totalExcluded;
-        _balanceCoeff = _balanceCoeff - (_balanceCoeff * reward) / _circulation;
+        uint256 delta = (_balanceCoeff * reward) / _circulation;
 
-        emit Reflect(reward);
+        if (delta < _balanceCoeff) {
+            _balanceCoeff = _balanceCoeff - delta;
+            emit Reflect(reward);
+        } else {
+            _balances[_burnAddr] = _balances[_burnAddr] + reward;
+            _totalExcluded = _totalExcluded + reward;
+            emit Transfer(sender, _burnAddr, reward);
+        }
 
         _recordPurchase(recipient, incoming);
     }
@@ -901,6 +910,13 @@ contract Kenshi is Context, IBEP20, Ownable {
      */
     function getMaxBalance() public view returns (uint256) {
         return _minMaxBalance + _circulation / 100;
+    }
+
+    /**
+     * @dev Returns the current balance coefficient.
+     */
+    function getCurrentCoeff() public view returns (uint256) {
+        return _balanceCoeff;
     }
 
     /**
