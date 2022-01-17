@@ -211,7 +211,7 @@ contract Ownable is Context {
     }
 }
 
-contract BEP20Token is Context, IBEP20, Ownable {
+contract Kenshi is Context, IBEP20, Ownable {
     /* BEP20 related */
 
     mapping(address => uint256) private _balances;
@@ -238,8 +238,15 @@ contract BEP20Token is Context, IBEP20, Ownable {
     /* Special addresses (lockers, reserve, liquidity pools...) */
 
     mapping(address => bool) private _excludedFromTax;
+    mapping(address => bool) private _excludedFromFines;
     mapping(address => bool) private _excludedFromReflects;
     mapping(address => bool) private _excludedFromMaxBalance;
+
+    /**
+     * Admins can exclude or include addresses from tax, reflections or
+     * maximum balance. An example is a Deployer creating a Kenshi Locker.
+     */
+
     mapping(address => bool) private _adminAddrs;
 
     /* Tokenomics */
@@ -301,11 +308,10 @@ contract BEP20Token is Context, IBEP20, Ownable {
         _name = "Kenshi";
         _symbol = "KENSHI";
 
-        /*
-            Large supply and large decimal places are 
-            to help with the accuracy loss caused by
-            the reward system.
-        */
+        /**
+         * Large supply and large decimal places are to help with
+         * the accuracy loss caused by the reward system.
+         */
 
         _decimals = 18;
         _totalSupply = 10e12 * 1e18;
@@ -323,6 +329,7 @@ contract BEP20Token is Context, IBEP20, Ownable {
 
         _adminAddrs[msg.sender] = true;
         _excludedFromTax[msg.sender] = true;
+        _excludedFromFines[msg.sender] = true;
         _excludedFromReflects[msg.sender] = true;
         _excludedFromMaxBalance[msg.sender] = true;
 
@@ -339,18 +346,15 @@ contract BEP20Token is Context, IBEP20, Ownable {
 
         _treasuryAddr = address(0);
 
-        /* 
-            Set initial max balance, this amount
-            increases over time
-        */
+        /* Set initial max balance, this amount increases over time */
 
         _minMaxBalance = _totalSupply / 100;
 
-        /*
-            This value gives us maximum precision without
-            facing overflows or underflows. Be careful when
-            updating the _totalSupply or the value below.
-        */
+        /**
+         * This value gives us maximum precision without facing overflows
+         * or underflows. Be careful when updating the _totalSupply or
+         * the value below.
+         */
 
         _balanceCoeff = (~uint256(0)) / _totalSupply;
 
@@ -565,7 +569,10 @@ contract BEP20Token is Context, IBEP20, Ownable {
         require(recipient != address(0), "BEP20: transfer to the zero address");
         require(amount > 0, "Kenshi: Transfer amount should be bigger than 0");
 
-        if (isTaxless(sender) || isTaxless(recipient)) {
+        if (
+            (isTaxless(sender) && isFineFree(sender)) ||
+            (isTaxless(recipient) && isFineFree(recipient))
+        ) {
             uint256 rOutgoing = _getTransferAmount(sender, amount);
             uint256 rIncoming = _getTransferAmount(recipient, amount);
 
@@ -622,6 +629,7 @@ contract BEP20Token is Context, IBEP20, Ownable {
 
         if (_treasuryAddr != address(0)) {
             _balances[_treasuryAddr] = _balances[_treasuryAddr] + invest;
+            _totalExcluded = _totalExcluded + invest;
             emit Transfer(sender, _treasuryAddr, invest);
         } else {
             reward = reward + invest;
@@ -629,6 +637,7 @@ contract BEP20Token is Context, IBEP20, Ownable {
 
         if (burn > 0) {
             _balances[_burnAddr] = _balances[_burnAddr] + burn;
+            _totalExcluded = _totalExcluded + burn;
             emit Transfer(sender, _burnAddr, burn);
         }
 
@@ -637,19 +646,16 @@ contract BEP20Token is Context, IBEP20, Ownable {
 
         emit Transfer(sender, recipient, amount - burn - tax);
 
-        _totalExcluded = _totalExcluded + invest + burn;
-
         if (isExcluded(sender) && !isExcluded(recipient)) {
-            _totalExcluded = _totalExcluded - remainingAmount;
+            _totalExcluded = _totalExcluded - amount;
         } else if (!isExcluded(sender) && isExcluded(recipient)) {
             _totalExcluded = _totalExcluded + remainingAmount;
         }
 
         _circulation = _totalSupply - _totalExcluded;
+        _balanceCoeff = _balanceCoeff - (_balanceCoeff * reward) / _circulation;
 
         emit Reflect(reward);
-
-        _balanceCoeff = _balanceCoeff - (_balanceCoeff * reward) / _circulation;
 
         _recordPurchase(recipient, incoming);
     }
@@ -722,6 +728,20 @@ contract BEP20Token is Context, IBEP20, Ownable {
     }
 
     /**
+     * @dev Check if `addr` is excluded from fines.
+     */
+    function isFineFree(address addr) public view returns (bool) {
+        return _excludedFromFines[addr];
+    }
+
+    /**
+     * @dev Set `addr` is excluded from fines to `state`.
+     */
+    function setIsFineFree(address addr, bool state) external onlyAdmins {
+        _excludedFromFines[addr] = state;
+    }
+
+    /**
      * @dev Check if `addr` is excluded from reflects.
      */
     function isExcluded(address addr) public view returns (bool) {
@@ -762,7 +782,7 @@ contract BEP20Token is Context, IBEP20, Ownable {
     /**
      * @dev Check if `addr` is an admin.
      */
-    function isAdmin(address addr) public view returns (bool) {
+    function isAdmin(address addr) external view returns (bool) {
         return _adminAddrs[addr];
     }
 
@@ -834,8 +854,11 @@ contract BEP20Token is Context, IBEP20, Ownable {
         view
         returns (uint8)
     {
-        if (isTaxless(sender)) {
+        if (isTaxless(sender) && isFineFree(sender)) {
             return 0;
+        }
+        if (isFineFree(sender)) {
+            return _baseTax;
         }
         uint256 daysPassed = (timestamp - _purchaseTimes[sender]) / 86400;
         if (daysPassed >= 30) {
@@ -975,6 +998,7 @@ contract BEP20Token is Context, IBEP20, Ownable {
         _treasuryAddr = treasury;
 
         _excludedFromTax[_treasuryAddr] = true;
+        _excludedFromFines[_treasuryAddr] = true;
         _excludedFromReflects[_treasuryAddr] = true;
         _excludedFromMaxBalance[_treasuryAddr] = true;
     }
