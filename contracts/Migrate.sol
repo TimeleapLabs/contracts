@@ -1,7 +1,11 @@
 //SPDX-License-Identifier: UNLICENSED
 pragma solidity ^0.8.10;
 
-interface IBEP20 {
+/**
+ * Note: no need to import the entire IBEP20 when these are the only
+ * functions we need.
+ */
+interface IToken {
     function balanceOf(address account) external view returns (uint256);
 
     function transferFrom(
@@ -12,7 +16,7 @@ interface IBEP20 {
 }
 
 /*
- * @dev Migrate from Kenshi v1 to v2.
+ * @dev Migrate from BEP20 Kenshi v1 to BEP1363 Kenshi v2.
  */
 contract Migrate {
     address private _v1Recipient;
@@ -21,8 +25,8 @@ contract Migrate {
     address private _v2Addr;
     address private _owner;
 
-    IBEP20 private _v1Token;
-    IBEP20 private _v2Token;
+    IToken private _v1Token;
+    IToken private _v2Token;
 
     constructor() {
         _owner = msg.sender;
@@ -53,7 +57,7 @@ contract Migrate {
         require(msg.sender == _owner, "Kenshi: Only owner");
         require(addr != address(0), "Kenshi: Cannot set v1 addr to 0x0");
         _v1Addr = addr;
-        _v1Token = IBEP20(_v1Addr);
+        _v1Token = IToken(_v1Addr);
     }
 
     /**
@@ -63,7 +67,7 @@ contract Migrate {
         require(msg.sender == _owner, "Kenshi: Only owner");
         require(addr != address(0), "Kenshi: Cannot set v2 addr to 0x0");
         _v2Addr = addr;
-        _v2Token = IBEP20(_v2Addr);
+        _v2Token = IToken(_v2Addr);
     }
 
     /**

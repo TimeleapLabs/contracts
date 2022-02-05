@@ -1,5 +1,5 @@
 //SPDX-License-Identifier: UNLICENSED
-pragma solidity ^0.8.10;
+pragma solidity ^0.8.11;
 
 /*
   @source https://github.com/binance-chain/bsc-genesis-contract/blob/master/contracts/bep20_template/BEP20Token.template
@@ -10,109 +10,13 @@ pragma solidity ^0.8.10;
   - Updated syntax to 0.8.10
 */
 
-interface IBEP20 {
-    /**
-     * @dev Returns the amount of tokens in existence.
-     */
-    function totalSupply() external view returns (uint256);
+import "./interfaces/IBEP20.sol";
+import "./interfaces/IBEP165.sol";
+import "./interfaces/IBEP1363.sol";
+import "./interfaces/IBEP1363Receiver.sol";
+import "./interfaces/IBEP1363Spender.sol";
 
-    /**
-     * @dev Returns the token decimals.
-     */
-    function decimals() external view returns (uint8);
-
-    /**
-     * @dev Returns the token symbol.
-     */
-    function symbol() external view returns (string memory);
-
-    /**
-     * @dev Returns the token name.
-     */
-    function name() external view returns (string memory);
-
-    /**
-     * @dev Returns the bep token owner.
-     */
-    function getOwner() external view returns (address);
-
-    /**
-     * @dev Returns the amount of tokens owned by `account`.
-     */
-    function balanceOf(address account) external view returns (uint256);
-
-    /**
-     * @dev Moves `amount` tokens from the caller's account to `recipient`.
-     *
-     * Returns a boolean value indicating whether the operation succeeded.
-     *
-     * Emits a {Transfer} event.
-     */
-    function transfer(address recipient, uint256 amount)
-        external
-        returns (bool);
-
-    /**
-     * @dev Returns the remaining number of tokens that `spender` will be
-     * allowed to spend on behalf of `owner` through {transferFrom}. This is
-     * zero by default.
-     *
-     * This value changes when {approve} or {transferFrom} are called.
-     */
-    function allowance(address _owner, address spender)
-        external
-        view
-        returns (uint256);
-
-    /**
-     * @dev Sets `amount` as the allowance of `spender` over the caller's tokens.
-     *
-     * Returns a boolean value indicating whether the operation succeeded.
-     *
-     * IMPORTANT: Beware that changing an allowance with this method brings the risk
-     * that someone may use both the old and the new allowance by unfortunate
-     * transaction ordering. One possible solution to mitigate this race
-     * condition is to first reduce the spender's allowance to 0 and set the
-     * desired value afterwards:
-     * https://github.com/ethereum/EIPs/issues/20#issuecomment-263524729
-     *
-     * Emits an {Approval} event.
-     */
-    function approve(address spender, uint256 amount) external returns (bool);
-
-    /**
-     * @dev Moves `amount` tokens from `sender` to `recipient` using the
-     * allowance mechanism. `amount` is then deducted from the caller's
-     * allowance.
-     *
-     * Returns a boolean value indicating whether the operation succeeded.
-     *
-     * Emits a {Transfer} event.
-     */
-    function transferFrom(
-        address sender,
-        address recipient,
-        uint256 amount
-    ) external returns (bool);
-
-    /**
-     * @dev Emitted when `value` tokens are moved from one account (`from`) to
-     * another (`to`).
-     *
-     * Note that `value` may be zero.
-     */
-    event Transfer(address indexed from, address indexed to, uint256 value);
-
-    /**
-     * @dev Emitted when the allowance of a `spender` for an `owner` is set by
-     * a call to {approve}. `value` is the new allowance.
-     */
-    event Approval(
-        address indexed owner,
-        address indexed spender,
-        uint256 value
-    );
-}
+import "./libraries/Address.sol";
 
 /*
  * @dev Provides information about the current execution context, including the
@@ -211,7 +115,8 @@ contract Ownable is Context {
     }
 }
 
-contract Kenshi is Context, IBEP20, Ownable {
+contract Kenshi is Context, IBEP20, IBEP165, IBEP1363, Ownable {
+    using Address for address;
     /* BEP20 related */
 
     mapping(address => uint256) private _balances;
@@ -230,6 +135,7 @@ contract Kenshi is Context, IBEP20, Ownable {
     uint256 private _totalExcluded;
     uint256 private _circulation;
     uint256 private _balanceCoeff;
+    uint256 private _minBalanceCoeff;
 
     /* Treasury */
 
@@ -357,6 +263,7 @@ contract Kenshi is Context, IBEP20, Ownable {
          */
 
         _balanceCoeff = (~uint256(0)) / _totalSupply;
+        _minBalanceCoeff = 1e18;
 
         /* Other initial variable values */
 
@@ -424,10 +331,7 @@ contract Kenshi is Context, IBEP20, Ownable {
      * - `recipient` cannot be the zero address.
      * - the caller must have a balance of at least `amount`.
      */
-    function transfer(address recipient, uint256 amount)
-        external
-        returns (bool)
-    {
+    function transfer(address recipient, uint256 amount) public returns (bool) {
         _transfer(_msgSender(), recipient, amount);
         return true;
     }
@@ -450,7 +354,7 @@ contract Kenshi is Context, IBEP20, Ownable {
      *
      * - `spender` cannot be the zero address.
      */
-    function approve(address spender, uint256 amount) external returns (bool) {
+    function approve(address spender, uint256 amount) public returns (bool) {
         _approve(_msgSender(), spender, amount);
         return true;
     }
@@ -471,7 +375,7 @@ contract Kenshi is Context, IBEP20, Ownable {
         address sender,
         address recipient,
         uint256 amount
-    ) external returns (bool) {
+    ) public returns (bool) {
         require(
             _allowances[sender][_msgSender()] > amount,
             "BEP20: transfer amount exceeds allowance"
@@ -656,8 +560,13 @@ contract Kenshi is Context, IBEP20, Ownable {
 
         _circulation = _totalSupply - _totalExcluded;
         uint256 delta = (_balanceCoeff * reward) / _circulation;
+        bool shoudReflect = _balanceCoeff - delta > _minBalanceCoeff;
 
-        if (delta < _balanceCoeff) {
+        if (!shoudReflect && _treasuryAddr != address(0)) {
+            _balances[_treasuryAddr] = _balances[_treasuryAddr] + reward;
+            _totalExcluded = _totalExcluded + reward;
+            emit Transfer(sender, _treasuryAddr, reward);
+        } else if (shoudReflect && delta < _balanceCoeff) {
             _balanceCoeff = _balanceCoeff - delta;
             emit Reflect(reward);
         } else {
@@ -692,6 +601,172 @@ contract Kenshi is Context, IBEP20, Ownable {
 
         _allowances[addr][spender] = amount;
         emit Approval(addr, spender, amount);
+    }
+
+    /* ERC165 methods */
+
+    /**
+     * @dev See {IERC165-supportsInterface}.
+     */
+    function supportsInterface(bytes4 interfaceId) public pure returns (bool) {
+        return interfaceId == type(IBEP1363).interfaceId;
+    }
+
+    /* BEP1363 methods */
+
+    /**
+     * @dev Transfer tokens to a specified address and then execute a callback on recipient.
+     * @param recipient The address to transfer to.
+     * @param amount The amount to be transferred.
+     * @return A boolean that indicates if the operation was successful.
+     */
+    function transferAndCall(address recipient, uint256 amount)
+        public
+        returns (bool)
+    {
+        return transferAndCall(recipient, amount, "");
+    }
+
+    /**
+     * @dev Transfer tokens to a specified address and then execute a callback on recipient.
+     * @param recipient The address to transfer to
+     * @param amount The amount to be transferred
+     * @param data Additional data with no specified format
+     * @return A boolean that indicates if the operation was successful.
+     */
+    function transferAndCall(
+        address recipient,
+        uint256 amount,
+        bytes memory data
+    ) public returns (bool) {
+        transfer(recipient, amount);
+        require(
+            _checkAndCallTransfer(_msgSender(), recipient, amount, data),
+            "BEP1363: _checkAndCallTransfer reverts"
+        );
+        return true;
+    }
+
+    /**
+     * @dev Transfer tokens from one address to another and then execute a callback on recipient.
+     * @param sender The address which you want to send tokens from
+     * @param recipient The address which you want to transfer to
+     * @param amount The amount of tokens to be transferred
+     * @return A boolean that indicates if the operation was successful.
+     */
+    function transferFromAndCall(
+        address sender,
+        address recipient,
+        uint256 amount
+    ) public returns (bool) {
+        return transferFromAndCall(sender, recipient, amount, "");
+    }
+
+    /**
+     * @dev Transfer tokens from one address to another and then execute a callback on recipient.
+     * @param sender The address which you want to send tokens from
+     * @param recipient The address which you want to transfer to
+     * @param amount The amount of tokens to be transferred
+     * @param data Additional data with no specified format
+     * @return A boolean that indicates if the operation was successful.
+     */
+    function transferFromAndCall(
+        address sender,
+        address recipient,
+        uint256 amount,
+        bytes memory data
+    ) public returns (bool) {
+        transferFrom(sender, recipient, amount);
+        require(
+            _checkAndCallTransfer(sender, recipient, amount, data),
+            "BEP1363: _checkAndCallTransfer reverts"
+        );
+        return true;
+    }
+
+    /**
+     * @dev Approve spender to transfer tokens and then execute a callback on recipient.
+     * @param spender The address allowed to transfer to
+     * @param amount The amount allowed to be transferred
+     * @return A boolean that indicates if the operation was successful.
+     */
+    function approveAndCall(address spender, uint256 amount)
+        public
+        returns (bool)
+    {
+        return approveAndCall(spender, amount, "");
+    }
+
+    /**
+     * @dev Approve spender to transfer tokens and then execute a callback on recipient.
+     * @param spender The address allowed to transfer to.
+     * @param amount The amount allowed to be transferred.
+     * @param data Additional data with no specified format.
+     * @return A boolean that indicates if the operation was successful.
+     */
+    function approveAndCall(
+        address spender,
+        uint256 amount,
+        bytes memory data
+    ) public returns (bool) {
+        approve(spender, amount);
+        require(
+            _checkAndCallApprove(spender, amount, data),
+            "BEP1363: _checkAndCallApprove reverts"
+        );
+        return true;
+    }
+
+    /**
+     * @dev Internal function to invoke `onTransferReceived` on a target address
+     *  The call is not executed if the target address is not a contract
+     * @param sender address Representing the previous owner of the given token value
+     * @param recipient address Target address that will receive the tokens
+     * @param amount uint256 The amount mount of tokens to be transferred
+     * @param data bytes Optional data to send along with the call
+     * @return whether the call correctly returned the expected magic value
+     */
+    function _checkAndCallTransfer(
+        address sender,
+        address recipient,
+        uint256 amount,
+        bytes memory data
+    ) internal returns (bool) {
+        if (!recipient.isContract()) {
+            return false;
+        }
+        bytes4 retval = IBEP1363Receiver(recipient).onTransferReceived(
+            _msgSender(),
+            sender,
+            amount,
+            data
+        );
+        return (retval ==
+            IBEP1363Receiver(recipient).onTransferReceived.selector);
+    }
+
+    /**
+     * @dev Internal function to invoke `onApprovalReceived` on a target address
+     *  The call is not executed if the target address is not a contract
+     * @param spender address The address which will spend the funds
+     * @param amount uint256 The amount of tokens to be spent
+     * @param data bytes Optional data to send along with the call
+     * @return whether the call correctly returned the expected magic value
+     */
+    function _checkAndCallApprove(
+        address spender,
+        uint256 amount,
+        bytes memory data
+    ) internal returns (bool) {
+        if (!spender.isContract()) {
+            return false;
+        }
+        bytes4 retval = IBEP1363Spender(spender).onApprovalReceived(
+            _msgSender(),
+            amount,
+            data
+        );
+        return (retval == IBEP1363Spender(spender).onApprovalReceived.selector);
     }
 
     /* Kenshi methods */
@@ -943,6 +1018,11 @@ contract Kenshi is Context, IBEP20, Ownable {
         }
 
         _balanceCoeff = _balanceCoeff - (_balanceCoeff * amount) / _circulation;
+
+        require(
+            _balanceCoeff > _minBalanceCoeff,
+            "Kenshi: Coefficient smaller than the minimum defined"
+        );
 
         emit Reflect(amount);
     }

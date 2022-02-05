@@ -241,6 +241,68 @@ describe("Kenshi", function () {
     expect(total.gt("9999999999999999999999999999990")).to.be.true;
   });
 
+  it("Coeff shouldn't get lower than the minimum defined", async function () {
+    this.timeout(600000);
+
+    const Kenshi = await ethers.getContractFactory("Kenshi");
+    const kenshi = await Kenshi.deploy();
+    await kenshi.deployed();
+    await kenshi.openTrades();
+
+    const [_owner, dex, addr1, addr2] = await ethers.getSigners();
+
+    await setupDEX(kenshi, dex);
+
+    await kenshi.setIsLimitless(addr1.address, true);
+    await kenshi.setIsLimitless(addr2.address, true);
+
+    const notEmpty = async (addr) =>
+      (await kenshi.balanceOf(addr.address)).gt("0");
+
+    let isNotEmpty = true;
+
+    while (isNotEmpty) {
+      await tx(
+        kenshi
+          .connect(dex)
+          .transfer(addr1.address, "10000000000000000000000000000")
+      );
+      await tx(
+        kenshi
+          .connect(dex)
+          .transfer(addr2.address, "10000000000000000000000000000")
+      );
+      isNotEmpty = await notEmpty(dex);
+    }
+
+    let maxLoops = 10000;
+    const amount = "100000000000000000000000000000";
+
+    while (maxLoops-- && ((await notEmpty(addr1)) || (await notEmpty(addr2)))) {
+      const [sender, recipient] =
+        Math.random() > 0.5 ? [addr1, addr2] : [addr2, addr1];
+
+      const senderBalance = await kenshi.balanceOf(sender.address);
+      if (senderBalance.lt(amount)) continue;
+      await tx(kenshi.connect(sender).transfer(recipient.address, amount));
+    }
+
+    const coeff = await kenshi.getCurrentCoeff();
+
+    expect(coeff.gt("1000000000000000000")).to.be.true;
+
+    /* Check for friction */
+
+    const balance1 = await kenshi.balanceOf(addr1.address);
+    const balance2 = await kenshi.balanceOf(addr2.address);
+    const dexBalance = await kenshi.balanceOf(dex.address);
+    const burned = await kenshi.getTotalBurned();
+    const total = balance1.add(balance2).add(dexBalance).add(burned);
+
+    /* Note: allowing 0.0000000000001% friction */
+    expect(total.gt("9999999999999900000000000000000")).to.be.true;
+  });
+
   it("Delivering profits should be friction-less", async function () {
     const Kenshi = await ethers.getContractFactory("Kenshi");
     const kenshi = await Kenshi.deploy();
@@ -564,6 +626,40 @@ describe("Kenshi", function () {
     expect(await kenshi.balanceOf(addr1.address)).to.equal(
       "9500000000000000000000000"
     );
+  });
+
+  it("Set excluded should not reduce reflections of others", async function () {
+    const Kenshi = await ethers.getContractFactory("Kenshi");
+    const kenshi = await Kenshi.deploy();
+    await kenshi.deployed();
+    await kenshi.openTrades();
+
+    const [_owner, dex, addr1, addr2, addr3] = await ethers.getSigners();
+    await setupDEX(kenshi, dex);
+
+    await kenshi.setIsExcluded(addr1.address, true);
+
+    await tx(
+      kenshi.connect(dex).transfer(addr2.address, "10000000000000000000000000")
+    );
+
+    await tx(
+      kenshi.connect(dex).transfer(addr3.address, "10000000000000000000000000")
+    );
+
+    const balance1before = await kenshi.balanceOf(addr1.address);
+    const balance2before = await kenshi.balanceOf(addr2.address);
+    const balance3before = await kenshi.balanceOf(addr3.address);
+
+    await kenshi.setIsExcluded(addr1.address, false);
+
+    const balance1after = await kenshi.balanceOf(addr1.address);
+    const balance2after = await kenshi.balanceOf(addr2.address);
+    const balance3after = await kenshi.balanceOf(addr3.address);
+
+    expect(balance1before).to.be.equal(balance1after);
+    expect(balance2before).to.be.equal(balance2after);
+    expect(balance3before).to.be.equal(balance3after);
   });
 
   it("Get tax percentage at should work", async function () {
