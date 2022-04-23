@@ -904,6 +904,13 @@ contract Kenshi is Context, IBEP20, IBEP165, IBEP1363, Ownable {
     }
 
     /**
+     * @dev Check how many tokens are currently excluded.
+     */
+    function getTotalExcluded() external view returns (uint256) {
+        return _totalExcluded;
+    }
+
+    /**
      * @dev Check how many tokens are in circulation.
      */
     function getCirculation() external view returns (uint256) {
@@ -938,17 +945,22 @@ contract Kenshi is Context, IBEP20, IBEP165, IBEP1363, Ownable {
         view
         returns (uint8)
     {
-        if (isTaxless(sender) && isFineFree(sender)) {
+        bool taxFree = isTaxless(sender);
+        bool fineFree = isFineFree(sender);
+        if (taxFree && fineFree) {
             return 0;
         }
-        if (isFineFree(sender)) {
+        if (fineFree) {
             return _baseTax;
         }
         uint256 daysPassed = (timestamp - _purchaseTimes[sender]) / 86400;
         if (daysPassed >= 30) {
-            return _baseTax;
+            return taxFree ? 0 : _baseTax;
         }
-        return _baseTax + _earlySaleFines[daysPassed];
+        return
+            taxFree
+                ? _earlySaleFines[daysPassed]
+                : _baseTax + _earlySaleFines[daysPassed];
     }
 
     /**

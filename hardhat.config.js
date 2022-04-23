@@ -28,9 +28,6 @@ module.exports = {
       },
     },
   },
-  mocha: {
-    parallel: true,
-  },
   contractSizer: {
     runOnCompile: true,
   },
