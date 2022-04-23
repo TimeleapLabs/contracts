@@ -1,25 +1,8 @@
 const { expect } = require("chai");
 const { ethers } = require("hardhat");
+const { tx, setupDEX, setupTreasury } = require("./common");
 
-const tx = async (tx) => await (await tx).wait();
-
-const setupDEX = async (kenshi, dex) => {
-  await kenshi.setIsExcluded(dex.address, true);
-  await kenshi.setIsFineFree(dex.address, true);
-  await kenshi.setIsLimitless(dex.address, true);
-
-  const totalSupply = await kenshi.totalSupply();
-  await tx(kenshi.transfer(dex.address, totalSupply));
-};
-
-const setupTreasury = async (kenshi, treasury) => {
-  await kenshi.setIsExcluded(treasury.address, true);
-  await kenshi.setIsFineFree(treasury.address, true);
-  await kenshi.setIsLimitless(treasury.address, true);
-  await kenshi.setTreasuryAddr(treasury.address);
-};
-
-describe("Kenshi", function () {
+describe("Kenshi (Short)", function () {
   it("Should set minMaxBalance to 1 percent of the total supply", async function () {
     const Kenshi = await ethers.getContractFactory("Kenshi");
     const kenshi = await Kenshi.deploy();
@@ -188,121 +171,6 @@ describe("Kenshi", function () {
     );
   });
 
-  it("The big friction test!", async function () {
-    const Kenshi = await ethers.getContractFactory("Kenshi");
-    const kenshi = await Kenshi.deploy();
-    await kenshi.deployed();
-    await kenshi.openTrades();
-
-    const [_owner, dex, ...rest] = await ethers.getSigners();
-
-    await setupDEX(kenshi, dex);
-
-    await kenshi.setIsExcluded(rest[4].address, true);
-
-    for (const addr of rest) {
-      await tx(
-        kenshi.connect(dex).transfer(addr.address, "10000000000000000000000000")
-      );
-    }
-
-    let times = 24;
-    const amount = "100000000000000000000000";
-
-    while (times--) {
-      const senders = rest
-        .map((value) => ({ value, sort: Math.random() }))
-        .sort((a, b) => a.sort - b.sort)
-        .map(({ value }) => value);
-
-      const recipients = rest
-        .map((value) => ({ value, sort: Math.random() }))
-        .sort((a, b) => a.sort - b.sort)
-        .map(({ value }) => value);
-
-      for (const index in senders) {
-        const sender = senders[index];
-        const recipient = recipients[index];
-        if (sender.address === recipient.address) continue;
-        if ((await kenshi.balanceOf(sender.address)).lt(amount)) continue;
-        await tx(kenshi.connect(sender).transfer(recipient.address, amount));
-      }
-    }
-
-    const balances = await Promise.all(
-      rest.map((addr) => kenshi.balanceOf(addr.address))
-    );
-    const addrBalances = balances.reduce((a, b) => a.add(b));
-    const dexBalance = await kenshi.balanceOf(dex.address);
-    const burned = await kenshi.getTotalBurned();
-    const total = addrBalances.add(dexBalance).add(burned);
-
-    /* Note: rounding errors are negligible */
-    expect(total.gt("9999999999999999999999999999990")).to.be.true;
-  });
-
-  it("Coeff shouldn't get lower than the minimum defined", async function () {
-    this.timeout(600000);
-
-    const Kenshi = await ethers.getContractFactory("Kenshi");
-    const kenshi = await Kenshi.deploy();
-    await kenshi.deployed();
-    await kenshi.openTrades();
-
-    const [_owner, dex, addr1, addr2] = await ethers.getSigners();
-
-    await setupDEX(kenshi, dex);
-
-    await kenshi.setIsLimitless(addr1.address, true);
-    await kenshi.setIsLimitless(addr2.address, true);
-
-    const notEmpty = async (addr) =>
-      (await kenshi.balanceOf(addr.address)).gt("0");
-
-    let isNotEmpty = true;
-
-    while (isNotEmpty) {
-      await tx(
-        kenshi
-          .connect(dex)
-          .transfer(addr1.address, "10000000000000000000000000000")
-      );
-      await tx(
-        kenshi
-          .connect(dex)
-          .transfer(addr2.address, "10000000000000000000000000000")
-      );
-      isNotEmpty = await notEmpty(dex);
-    }
-
-    let maxLoops = 10000;
-    const amount = "100000000000000000000000000000";
-
-    while (maxLoops-- && ((await notEmpty(addr1)) || (await notEmpty(addr2)))) {
-      const [sender, recipient] =
-        Math.random() > 0.5 ? [addr1, addr2] : [addr2, addr1];
-
-      const senderBalance = await kenshi.balanceOf(sender.address);
-      if (senderBalance.lt(amount)) continue;
-      await tx(kenshi.connect(sender).transfer(recipient.address, amount));
-    }
-
-    const coeff = await kenshi.getCurrentCoeff();
-
-    expect(coeff.gt("1000000000000000000")).to.be.true;
-
-    /* Check for friction */
-
-    const balance1 = await kenshi.balanceOf(addr1.address);
-    const balance2 = await kenshi.balanceOf(addr2.address);
-    const dexBalance = await kenshi.balanceOf(dex.address);
-    const burned = await kenshi.getTotalBurned();
-    const total = balance1.add(balance2).add(dexBalance).add(burned);
-
-    /* Note: allowing 0.0000000000001% friction */
-    expect(total.gt("9999999999999900000000000000000")).to.be.true;
-  });
-
   it("Delivering profits should be friction-less", async function () {
     const Kenshi = await ethers.getContractFactory("Kenshi");
     const kenshi = await Kenshi.deploy();
@@ -346,6 +214,56 @@ describe("Kenshi", function () {
 
     /* Note: rounding errors are negligible */
     expect(total).to.equal("9999999999999999999999999999998");
+  });
+
+  it("Max balance should be respected", async function () {
+    const Kenshi = await ethers.getContractFactory("Kenshi");
+    const kenshi = await Kenshi.deploy();
+    await kenshi.deployed();
+    await kenshi.openTrades();
+
+    const [_owner, dex, user] = await ethers.getSigners();
+
+    await setupDEX(kenshi, dex);
+    const maxBalance = await kenshi.getMaxBalance();
+
+    expect(
+      tx(kenshi.connect(dex).transfer(user.address, maxBalance.add(1)))
+    ).to.be.revertedWith(
+      "Kenshi: Resulting balance more than the maximum allowed"
+    );
+  });
+
+  it("Limitless accounts should not be reverted on more than max balance transfer", async function () {
+    const Kenshi = await ethers.getContractFactory("Kenshi");
+    const kenshi = await Kenshi.deploy();
+    await kenshi.deployed();
+    await kenshi.openTrades();
+
+    const [_owner, dex, user] = await ethers.getSigners();
+
+    await setupDEX(kenshi, dex);
+    await kenshi.setIsLimitless(user.address, true);
+    const maxBalance = await kenshi.getMaxBalance();
+
+    expect(tx(kenshi.connect(dex).transfer(user.address, maxBalance.add(1)))).to
+      .not.be.reverted;
+  });
+
+  it("Shouldn't be able to transfer more than owned", async function () {
+    const Kenshi = await ethers.getContractFactory("Kenshi");
+    const kenshi = await Kenshi.deploy();
+    await kenshi.deployed();
+    await kenshi.openTrades();
+
+    const [_owner, dex, user1, user2] = await ethers.getSigners();
+
+    await setupDEX(kenshi, dex);
+    await tx(kenshi.connect(dex).transfer(user1.address, "10000000000000000"));
+
+    expect(
+      tx(kenshi.connect(user1).transfer(user2.address, "10000000000000000"))
+    ).to.be.revertedWith("Kenshi: Balance is lower than the requested amount");
   });
 
   it("Early sales should have a fine", async function () {

@@ -4,7 +4,9 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "test": "NODE_NO_WARNINGS=1 hardhat test",
+    "test": "NODE_NO_WARNINGS=1 hardhat test --grep Short",
+    "test:long": "NODE_NO_WARNINGS=1 hardhat test --grep Long",
+    "test:all": "NODE_NO_WARNINGS=1 hardhat test",
     "coverage": "NODE_NO_WARNINGS=1 hardhat coverage",
     "compile": "NODE_NO_WARNINGS=1 hardhat compile",
     "size": "npm run clean && NODE_NO_WARNINGS=1 hardhat compile",
