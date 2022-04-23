@@ -222,13 +222,13 @@ describe("Kenshi (Short)", function () {
     await kenshi.deployed();
     await kenshi.openTrades();
 
-    const [_owner, dex, user] = await ethers.getSigners();
+    const [_owner, dex, addr] = await ethers.getSigners();
 
     await setupDEX(kenshi, dex);
     const maxBalance = await kenshi.getMaxBalance();
 
     expect(
-      tx(kenshi.connect(dex).transfer(user.address, maxBalance.add(1)))
+      tx(kenshi.connect(dex).transfer(addr.address, maxBalance.add(1)))
     ).to.be.revertedWith(
       "Kenshi: Resulting balance more than the maximum allowed"
     );
@@ -240,13 +240,13 @@ describe("Kenshi (Short)", function () {
     await kenshi.deployed();
     await kenshi.openTrades();
 
-    const [_owner, dex, user] = await ethers.getSigners();
+    const [_owner, dex, addr] = await ethers.getSigners();
 
     await setupDEX(kenshi, dex);
-    await kenshi.setIsLimitless(user.address, true);
+    await kenshi.setIsLimitless(addr.address, true);
     const maxBalance = await kenshi.getMaxBalance();
 
-    expect(tx(kenshi.connect(dex).transfer(user.address, maxBalance.add(1)))).to
+    expect(tx(kenshi.connect(dex).transfer(addr.address, maxBalance.add(1)))).to
       .not.be.reverted;
   });
 
@@ -256,13 +256,13 @@ describe("Kenshi (Short)", function () {
     await kenshi.deployed();
     await kenshi.openTrades();
 
-    const [_owner, dex, user1, user2] = await ethers.getSigners();
+    const [_owner, dex, addr1, addr2] = await ethers.getSigners();
 
     await setupDEX(kenshi, dex);
-    await tx(kenshi.connect(dex).transfer(user1.address, "10000000000000000"));
+    await tx(kenshi.connect(dex).transfer(addr1.address, "10000000000000000"));
 
     expect(
-      tx(kenshi.connect(user1).transfer(user2.address, "10000000000000000"))
+      tx(kenshi.connect(addr1).transfer(addr2.address, "10000000000000000"))
     ).to.be.revertedWith("Kenshi: Balance is lower than the requested amount");
   });
 
