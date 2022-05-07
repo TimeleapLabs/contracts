@@ -171,6 +171,45 @@ describe("Kenshi (Short)", function () {
     );
   });
 
+  it("Delivering profits should work (excluded)", async function () {
+    const Kenshi = await ethers.getContractFactory("Kenshi");
+    const kenshi = await Kenshi.deploy();
+    await kenshi.deployed();
+    await kenshi.openTrades();
+
+    const [_owner, dex, addr1, addr2, addr3, addr4] = await ethers.getSigners();
+
+    await setupDEX(kenshi, dex);
+
+    await tx(
+      kenshi.connect(dex).transfer(addr1.address, "10000000000000000000000000")
+    );
+    await tx(
+      kenshi.connect(dex).transfer(addr2.address, "10000000000000000000000000")
+    );
+    await tx(
+      kenshi.connect(dex).transfer(addr3.address, "10000000000000000000000000")
+    );
+
+    await tx(
+      kenshi.connect(dex).transfer(addr4.address, "10000000000000000000000000")
+    );
+
+    await kenshi.setIsExcluded(addr4.address, true);
+
+    const totalExcluded = await kenshi.getTotalExcluded();
+    const balance = await kenshi.balanceOf(addr4.address);
+    await tx(kenshi.connect(addr4).deliver(balance));
+
+    expect(await kenshi.balanceOf(addr4.address)).to.equal("0");
+    expect(await kenshi.balanceOf(addr1.address)).to.equal(
+      "13656085289046831568206607"
+    );
+    expect(await kenshi.getTotalExcluded()).to.be.equal(
+      totalExcluded.sub(balance)
+    );
+  });
+
   it("Delivering profits should be friction-less", async function () {
     const Kenshi = await ethers.getContractFactory("Kenshi");
     const kenshi = await Kenshi.deploy();
@@ -520,6 +559,23 @@ describe("Kenshi (Short)", function () {
     expect(await kenshi.getTotalBurned()).to.equal("100000000000000000000000");
   });
 
+  it("Should send reward to treasury if cannot reflect", async function () {
+    const Kenshi = await ethers.getContractFactory("Kenshi");
+    const kenshi = await Kenshi.deploy();
+    await kenshi.deployed();
+    await kenshi.openTrades();
+
+    const [_owner, dex, treasury, addr1] = await ethers.getSigners();
+
+    await setupDEX(kenshi, dex);
+    await setupTreasury(kenshi, treasury);
+
+    await kenshi.setIsExcluded(addr1.address, true);
+    await tx(kenshi.connect(dex).transfer(addr1.address, "10000000000000"));
+
+    expect(await kenshi.balanceOf(treasury.address)).to.equal("400000000000");
+  });
+
   it("Set excluded should exclude addresses from reflections", async function () {
     const Kenshi = await ethers.getContractFactory("Kenshi");
     const kenshi = await Kenshi.deploy();
@@ -677,6 +733,31 @@ describe("Kenshi (Short)", function () {
     expect(taxPercentage).to.equal(5);
   });
 
+  it("Get tax percentage at should work (fine-free & tax-free)", async function () {
+    const Kenshi = await ethers.getContractFactory("Kenshi");
+    const kenshi = await Kenshi.deploy();
+    await kenshi.deployed();
+    await kenshi.openTrades();
+
+    const [_owner, dex, addr1] = await ethers.getSigners();
+
+    await setupDEX(kenshi, dex);
+    await kenshi.setIsFineFree(addr1.address, true);
+    await kenshi.setIsTaxless(addr1.address, true);
+    await tx(kenshi.connect(dex).transfer(addr1.address, "10000000"));
+
+    const blockNumber = await ethers.provider.getBlockNumber();
+    const block = await ethers.provider.getBlock(blockNumber);
+    const timestamp = block.timestamp + 86400;
+
+    const taxPercentage = await kenshi.getTaxPercentageAt(
+      addr1.address,
+      timestamp
+    );
+
+    expect(taxPercentage).to.equal(0);
+  });
+
   it("Get tax percentage at should work (tax-free)", async function () {
     const Kenshi = await ethers.getContractFactory("Kenshi");
     const kenshi = await Kenshi.deploy();
@@ -699,6 +780,27 @@ describe("Kenshi (Short)", function () {
     );
 
     expect(taxPercentage).to.equal(39);
+  });
+
+  it("Transfer to a tax-free destination should be tax-free", async function () {
+    const Kenshi = await ethers.getContractFactory("Kenshi");
+    const kenshi = await Kenshi.deploy();
+    await kenshi.deployed();
+    await kenshi.openTrades();
+
+    const [_owner, dex, addr1, addr2] = await ethers.getSigners();
+
+    await setupDEX(kenshi, dex);
+    await kenshi.setIsTaxless(addr1.address, true);
+    await tx(kenshi.connect(dex).transfer(addr1.address, "10000000"));
+    await kenshi.setIsTaxlessDestination(addr2.address, true);
+    await tx(kenshi.connect(addr1).transfer(addr2.address, "1000000"));
+
+    const balance1 = await kenshi.balanceOf(addr1.address);
+    const balance2 = await kenshi.balanceOf(addr2.address);
+
+    expect(balance1).to.equal("8899999");
+    expect(balance2).to.equal("1000000");
   });
 
   it("Transfers equal to min transfer rate should pass", async function () {

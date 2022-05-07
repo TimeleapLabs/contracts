@@ -24,6 +24,7 @@ contract Migrate {
     address private _v1Addr;
     address private _v2Addr;
     address private _owner;
+    bool private _enabled;
 
     IToken private _v1Token;
     IToken private _v2Token;
@@ -42,7 +43,7 @@ contract Migrate {
     }
 
     /**
-     * @dev Sets the recipient of the v1 tokens.
+     * @dev Sets the provider of the v2 tokens.
      */
     function setV2Provider(address addr) external {
         require(msg.sender == _owner, "Kenshi: Only owner");
@@ -61,7 +62,7 @@ contract Migrate {
     }
 
     /**
-     * @dev Sets the address of the v1 token.
+     * @dev Sets the address of the v2 token.
      */
     function setV2Addr(address addr) external {
         require(msg.sender == _owner, "Kenshi: Only owner");
@@ -71,9 +72,18 @@ contract Migrate {
     }
 
     /**
+     * @dev Sets if the migrations are enabled.
+     */
+    function setIsEnabled(bool enabled) external {
+        require(msg.sender == _owner, "Kenshi: Only owner");
+        _enabled = enabled;
+    }
+
+    /**
      * @dev Migrate Kenshi tokens from v1 to v2.
      */
     function migrate() external {
+        require(_enabled, "Kenshi: Migrations are disabled");
         address account = msg.sender;
         uint256 v1Balance = _v1Token.balanceOf(account);
         bool v1Transfer = _v1Token.transferFrom(

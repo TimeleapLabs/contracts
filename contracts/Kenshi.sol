@@ -147,6 +147,7 @@ contract Kenshi is Context, IBEP20, IBEP165, IBEP1363, Ownable {
     mapping(address => bool) private _excludedFromFines;
     mapping(address => bool) private _excludedFromReflects;
     mapping(address => bool) private _excludedFromMaxBalance;
+    mapping(address => bool) private _excludedFromFineAndTaxDestinations;
 
     /**
      * Admins can exclude or include addresses from tax, reflections or
@@ -238,15 +239,16 @@ contract Kenshi is Context, IBEP20, IBEP165, IBEP1363, Ownable {
         _excludedFromFines[msg.sender] = true;
         _excludedFromReflects[msg.sender] = true;
         _excludedFromMaxBalance[msg.sender] = true;
+        _excludedFromFineAndTaxDestinations[msg.sender] = true;
 
         /* Burning */
 
         _burnAddr = address(0xdead);
         _burnThreshold = _totalSupply / 2;
 
-        _excludedFromTax[_burnAddr] = true;
         _excludedFromReflects[_burnAddr] = true;
         _excludedFromMaxBalance[_burnAddr] = true;
+        _excludedFromFineAndTaxDestinations[_burnAddr] = true;
 
         /* Treasury */
 
@@ -475,7 +477,7 @@ contract Kenshi is Context, IBEP20, IBEP165, IBEP1363, Ownable {
 
         if (
             (isTaxless(sender) && isFineFree(sender)) ||
-            (isTaxless(recipient) && isFineFree(recipient))
+            isTaxlessDestination(recipient)
         ) {
             uint256 rOutgoing = _getTransferAmount(sender, amount);
             uint256 rIncoming = _getTransferAmount(recipient, amount);
@@ -485,7 +487,7 @@ contract Kenshi is Context, IBEP20, IBEP165, IBEP1363, Ownable {
                 "Kenshi: Balance is lower than the requested amount"
             );
 
-            /* Required for making a liquidity pool */
+            /* Required for migrations and making a liquidity pool */
             if (_tradeOpen || sender != owner()) {
                 require(
                     _checkMaxBalance(recipient, rIncoming),
@@ -510,7 +512,8 @@ contract Kenshi is Context, IBEP20, IBEP165, IBEP1363, Ownable {
         require(_tradeOpen, "Kenshi: Trading is not open yet");
 
         uint256 burn = _getBurnAmount(amount);
-        uint256 tax = _getTax(sender, amount) - burn;
+        uint256 rawTax = _getTax(sender, amount);
+        uint256 tax = rawTax > burn ? rawTax - burn : 0;
 
         /* Split the tax */
 
@@ -531,12 +534,14 @@ contract Kenshi is Context, IBEP20, IBEP165, IBEP1363, Ownable {
             "Kenshi: Resulting balance more than the maximum allowed"
         );
 
-        if (_treasuryAddr != address(0)) {
-            _balances[_treasuryAddr] = _balances[_treasuryAddr] + invest;
-            _totalExcluded = _totalExcluded + invest;
-            emit Transfer(sender, _treasuryAddr, invest);
-        } else {
-            reward = reward + invest;
+        if (invest > 0) {
+            if (_treasuryAddr != address(0)) {
+                _balances[_treasuryAddr] = _balances[_treasuryAddr] + invest;
+                _totalExcluded = _totalExcluded + invest;
+                emit Transfer(sender, _treasuryAddr, invest);
+            } else {
+                reward = reward + invest;
+            }
         }
 
         if (burn > 0) {
@@ -560,16 +565,16 @@ contract Kenshi is Context, IBEP20, IBEP165, IBEP1363, Ownable {
 
         _circulation = _totalSupply - _totalExcluded;
         uint256 delta = (_balanceCoeff * reward) / _circulation;
-        bool shoudReflect = _balanceCoeff - delta > _minBalanceCoeff;
+        bool shouldReflect = _balanceCoeff - delta > _minBalanceCoeff;
 
-        if (!shoudReflect && _treasuryAddr != address(0)) {
+        if (reward > 0 && !shouldReflect && _treasuryAddr != address(0)) {
             _balances[_treasuryAddr] = _balances[_treasuryAddr] + reward;
             _totalExcluded = _totalExcluded + reward;
             emit Transfer(sender, _treasuryAddr, reward);
-        } else if (shoudReflect && delta < _balanceCoeff) {
+        } else if (shouldReflect && delta < _balanceCoeff) {
             _balanceCoeff = _balanceCoeff - delta;
             emit Reflect(reward);
-        } else {
+        } else if (reward > 0) {
             _balances[_burnAddr] = _balances[_burnAddr] + reward;
             _totalExcluded = _totalExcluded + reward;
             emit Transfer(sender, _burnAddr, reward);
@@ -608,7 +613,11 @@ contract Kenshi is Context, IBEP20, IBEP165, IBEP1363, Ownable {
     /**
      * @dev See {IERC165-supportsInterface}.
      */
-    function supportsInterface(bytes4 interfaceId) public pure returns (bool) {
+    function supportsInterface(bytes4 interfaceId)
+        external
+        pure
+        returns (bool)
+    {
         return interfaceId == type(IBEP1363).interfaceId;
     }
 
@@ -621,7 +630,7 @@ contract Kenshi is Context, IBEP20, IBEP165, IBEP1363, Ownable {
      * @return A boolean that indicates if the operation was successful.
      */
     function transferAndCall(address recipient, uint256 amount)
-        public
+        external
         returns (bool)
     {
         return transferAndCall(recipient, amount, "");
@@ -658,7 +667,7 @@ contract Kenshi is Context, IBEP20, IBEP165, IBEP1363, Ownable {
         address sender,
         address recipient,
         uint256 amount
-    ) public returns (bool) {
+    ) external returns (bool) {
         return transferFromAndCall(sender, recipient, amount, "");
     }
 
@@ -691,7 +700,7 @@ contract Kenshi is Context, IBEP20, IBEP165, IBEP1363, Ownable {
      * @return A boolean that indicates if the operation was successful.
      */
     function approveAndCall(address spender, uint256 amount)
-        public
+        external
         returns (bool)
     {
         return approveAndCall(spender, amount, "");
@@ -800,6 +809,23 @@ contract Kenshi is Context, IBEP20, IBEP165, IBEP1363, Ownable {
     /**
      * @dev Check if `addr` is excluded from tax.
      */
+    function isTaxlessDestination(address addr) public view returns (bool) {
+        return _excludedFromFineAndTaxDestinations[addr];
+    }
+
+    /**
+     * @dev Set `addr` is excluded from tax to `state`.
+     */
+    function setIsTaxlessDestination(address addr, bool state)
+        public
+        onlyAdmins
+    {
+        _excludedFromFineAndTaxDestinations[addr] = state;
+    }
+
+    /**
+     * @dev Check if `addr` is excluded from tax.
+     */
     function isTaxless(address addr) public view returns (bool) {
         return _excludedFromTax[addr];
     }
@@ -807,7 +833,7 @@ contract Kenshi is Context, IBEP20, IBEP165, IBEP1363, Ownable {
     /**
      * @dev Set `addr` is excluded from tax to `state`.
      */
-    function setIsTaxless(address addr, bool state) external onlyAdmins {
+    function setIsTaxless(address addr, bool state) public onlyAdmins {
         _excludedFromTax[addr] = state;
     }
 
@@ -821,7 +847,7 @@ contract Kenshi is Context, IBEP20, IBEP165, IBEP1363, Ownable {
     /**
      * @dev Set `addr` is excluded from fines to `state`.
      */
-    function setIsFineFree(address addr, bool state) external onlyAdmins {
+    function setIsFineFree(address addr, bool state) public onlyAdmins {
         _excludedFromFines[addr] = state;
     }
 
@@ -835,7 +861,7 @@ contract Kenshi is Context, IBEP20, IBEP165, IBEP1363, Ownable {
     /**
      * @dev Set `addr` is excluded from reflections to `state`.
      */
-    function setIsExcluded(address addr, bool state) external onlyAdmins {
+    function setIsExcluded(address addr, bool state) public onlyAdmins {
         if (isExcluded(addr) && !state) {
             uint256 balance = _balances[addr];
             _totalExcluded = _totalExcluded - balance;
@@ -859,7 +885,7 @@ contract Kenshi is Context, IBEP20, IBEP165, IBEP1363, Ownable {
     /**
      * @dev Set `addr` is excluded from max balance to `state`.
      */
-    function setIsLimitless(address addr, bool state) external onlyAdmins {
+    function setIsLimitless(address addr, bool state) public onlyAdmins {
         _excludedFromMaxBalance[addr] = state;
     }
 
@@ -1002,7 +1028,7 @@ contract Kenshi is Context, IBEP20, IBEP165, IBEP1363, Ownable {
     /**
      * @dev Returns the current balance coefficient.
      */
-    function getCurrentCoeff() public view returns (uint256) {
+    function getCurrentCoeff() external view returns (uint256) {
         return _balanceCoeff;
     }
 
@@ -1103,12 +1129,20 @@ contract Kenshi is Context, IBEP20, IBEP165, IBEP1363, Ownable {
      */
     function setTreasuryAddr(address treasury) external onlyOwner {
         require(treasury != address(0), "Kenshi: Cannot set treasury to 0x0");
+
+        if (_treasuryAddr != address(0)) {
+            setIsTaxless(_treasuryAddr, false);
+            setIsFineFree(_treasuryAddr, false);
+            setIsExcluded(_treasuryAddr, false);
+            setIsLimitless(_treasuryAddr, false);
+        }
+
         _treasuryAddr = treasury;
 
-        _excludedFromTax[_treasuryAddr] = true;
-        _excludedFromFines[_treasuryAddr] = true;
-        _excludedFromReflects[_treasuryAddr] = true;
-        _excludedFromMaxBalance[_treasuryAddr] = true;
+        setIsTaxless(_treasuryAddr, true);
+        setIsFineFree(_treasuryAddr, true);
+        setIsExcluded(_treasuryAddr, true);
+        setIsLimitless(_treasuryAddr, true);
     }
 
     event BurnThresholdChanged(uint256 threshold);

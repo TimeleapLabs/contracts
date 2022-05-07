@@ -28,6 +28,9 @@ module.exports = {
       },
     },
   },
+  mocha: {
+    grep: "Short",
+  },
   contractSizer: {
     runOnCompile: true,
   },
