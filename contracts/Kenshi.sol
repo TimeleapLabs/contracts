@@ -1,7 +1,5 @@
 //SPDX-License-Identifier: UNLICENSED
-pragma solidity ^0.8.10;
-
-import "pancakeswap-peripheral/contracts/interfaces/IPancakeRouter02.sol";
+pragma solidity ^0.8.11;
 
 /*
   @source https://github.com/binance-chain/bsc-genesis-contract/blob/master/contracts/bep20_template/BEP20Token.template
@@ -12,109 +10,13 @@ import "pancakeswap-peripheral/contracts/interfaces/IPancakeRouter02.sol";
   - Updated syntax to 0.8.10
 */
 
-interface IBEP20 {
-    /**
-     * @dev Returns the amount of tokens in existence.
-     */
-    function totalSupply() external view returns (uint256);
+import "./interfaces/IBEP20.sol";
+import "./interfaces/IBEP165.sol";
+import "./interfaces/IBEP1363.sol";
+import "./interfaces/IBEP1363Receiver.sol";
+import "./interfaces/IBEP1363Spender.sol";
 
-    /**
-     * @dev Returns the token decimals.
-     */
-    function decimals() external view returns (uint8);
-
-    /**
-     * @dev Returns the token symbol.
-     */
-    function symbol() external view returns (string memory);
-
-    /**
-     * @dev Returns the token name.
-     */
-    function name() external view returns (string memory);
-
-    /**
-     * @dev Returns the bep token owner.
-     */
-    function getOwner() external view returns (address);
-
-    /**
-     * @dev Returns the amount of tokens owned by `account`.
-     */
-    function balanceOf(address account) external view returns (uint256);
-
-    /**
-     * @dev Moves `amount` tokens from the caller's account to `recipient`.
-     *
-     * Returns a boolean value indicating whether the operation succeeded.
-     *
-     * Emits a {Transfer} event.
-     */
-    function transfer(address recipient, uint256 amount)
-        external
-        returns (bool);
-
-    /**
-     * @dev Returns the remaining number of tokens that `spender` will be
-     * allowed to spend on behalf of `owner` through {transferFrom}. This is
-     * zero by default.
-     *
-     * This value changes when {approve} or {transferFrom} are called.
-     */
-    function allowance(address _owner, address spender)
-        external
-        view
-        returns (uint256);
-
-    /**
-     * @dev Sets `amount` as the allowance of `spender` over the caller's tokens.
-     *
-     * Returns a boolean value indicating whether the operation succeeded.
-     *
-     * IMPORTANT: Beware that changing an allowance with this method brings the risk
-     * that someone may use both the old and the new allowance by unfortunate
-     * transaction ordering. One possible solution to mitigate this race
-     * condition is to first reduce the spender's allowance to 0 and set the
-     * desired value afterwards:
-     * https://github.com/ethereum/EIPs/issues/20#issuecomment-263524729
-     *
-     * Emits an {Approval} event.
-     */
-    function approve(address spender, uint256 amount) external returns (bool);
-
-    /**
-     * @dev Moves `amount` tokens from `sender` to `recipient` using the
-     * allowance mechanism. `amount` is then deducted from the caller's
-     * allowance.
-     *
-     * Returns a boolean value indicating whether the operation succeeded.
-     *
-     * Emits a {Transfer} event.
-     */
-    function transferFrom(
-        address sender,
-        address recipient,
-        uint256 amount
-    ) external returns (bool);
-
-    /**
-     * @dev Emitted when `value` tokens are moved from one account (`from`) to
-     * another (`to`).
-     *
-     * Note that `value` may be zero.
-     */
-    event Transfer(address indexed from, address indexed to, uint256 value);
-
-    /**
-     * @dev Emitted when the allowance of a `spender` for an `owner` is set by
-     * a call to {approve}. `value` is the new allowance.
-     */
-    event Approval(
-        address indexed owner,
-        address indexed spender,
-        uint256 value
-    );
-}
+import "./libraries/Address.sol";
 
 /*
  * @dev Provides information about the current execution context, including the
@@ -133,132 +35,6 @@ contract Context {
 
     function _msgSender() internal view returns (address) {
         return msg.sender;
-    }
-}
-
-/**
- * @dev Wrappers over Solidity's arithmetic operations with added overflow
- * checks.
- *
- * Arithmetic operations in Solidity wrap on overflow. This can easily result
- * in bugs, because programmers usually assume that an overflow raises an
- * error, which is the standard behavior in high level programming languages.
- * `SafeMath` restores this intuition by reverting the transaction when an
- * operation overflows.
- *
- * Using this library instead of the unchecked operations eliminates an entire
- * class of bugs, so it's recommended to use it always.
- */
-library SafeMath {
-    /**
-     * @dev Returns the addition of two unsigned integers, reverting on
-     * overflow.
-     *
-     * Counterpart to Solidity's `+` operator.
-     *
-     * Requirements:
-     * - Addition cannot overflow.
-     */
-    function add(uint256 a, uint256 b) internal pure returns (uint256) {
-        uint256 c = a + b;
-        require(c >= a, "SafeMath: addition overflow");
-
-        return c;
-    }
-
-    /**
-     * @dev Returns the subtraction of two unsigned integers, reverting on
-     * overflow (when the result is negative).
-     *
-     * Counterpart to Solidity's `-` operator.
-     *
-     * Requirements:
-     * - Subtraction cannot overflow.
-     */
-    function sub(uint256 a, uint256 b) internal pure returns (uint256) {
-        return sub(a, b, "SafeMath: subtraction overflow");
-    }
-
-    /**
-     * @dev Returns the subtraction of two unsigned integers, reverting with custom message on
-     * overflow (when the result is negative).
-     *
-     * Counterpart to Solidity's `-` operator.
-     *
-     * Requirements:
-     * - Subtraction cannot overflow.
-     */
-    function sub(
-        uint256 a,
-        uint256 b,
-        string memory errorMessage
-    ) internal pure returns (uint256) {
-        require(b <= a, errorMessage);
-        uint256 c = a - b;
-
-        return c;
-    }
-
-    /**
-     * @dev Returns the multiplication of two unsigned integers, reverting on
-     * overflow.
-     *
-     * Counterpart to Solidity's `*` operator.
-     *
-     * Requirements:
-     * - Multiplication cannot overflow.
-     */
-    function mul(uint256 a, uint256 b) internal pure returns (uint256) {
-        // Gas optimization: this is cheaper than requiring 'a' not being zero, but the
-        // benefit is lost if 'b' is also tested.
-        // See: https://github.com/OpenZeppelin/openzeppelin-contracts/pull/522
-        if (a == 0) {
-            return 0;
-        }
-
-        uint256 c = a * b;
-        require(c / a == b, "SafeMath: multiplication overflow");
-
-        return c;
-    }
-
-    /**
-     * @dev Returns the integer division of two unsigned integers. Reverts on
-     * division by zero. The result is rounded towards zero.
-     *
-     * Counterpart to Solidity's `/` operator. Note: this function uses a
-     * `revert` opcode (which leaves remaining gas untouched) while Solidity
-     * uses an invalid opcode to revert (consuming all remaining gas).
-     *
-     * Requirements:
-     * - The divisor cannot be zero.
-     */
-    function div(uint256 a, uint256 b) internal pure returns (uint256) {
-        return div(a, b, "SafeMath: division by zero");
-    }
-
-    /**
-     * @dev Returns the integer division of two unsigned integers. Reverts with custom message on
-     * division by zero. The result is rounded towards zero.
-     *
-     * Counterpart to Solidity's `/` operator. Note: this function uses a
-     * `revert` opcode (which leaves remaining gas untouched) while Solidity
-     * uses an invalid opcode to revert (consuming all remaining gas).
-     *
-     * Requirements:
-     * - The divisor cannot be zero.
-     */
-    function div(
-        uint256 a,
-        uint256 b,
-        string memory errorMessage
-    ) internal pure returns (uint256) {
-        // Solidity only automatically asserts when dividing by 0
-        require(b > 0, errorMessage);
-        uint256 c = a / b;
-        // assert(a == b * c + a % b); // There is no case in which this doesn't hold
-
-        return c;
     }
 }
 
@@ -339,16 +115,8 @@ contract Ownable is Context {
     }
 }
 
-interface IPresale {
-    /**
-     * @dev Checks if `addr` is whitelisted for IDO presale.
-     */
-    function isWhitelisted(address addr) external view returns (bool);
-}
-
-contract BEP20Token is Context, IBEP20, Ownable {
-    using SafeMath for uint256;
-
+contract Kenshi is Context, IBEP20, IBEP165, IBEP1363, Ownable {
+    using Address for address;
     /* BEP20 related */
 
     mapping(address => uint256) private _balances;
@@ -362,26 +130,31 @@ contract BEP20Token is Context, IBEP20, Ownable {
 
     /* Kenshi related */
 
-    /* Liquidity pools */
-
-    address private _dexAddr;
-    address private _routerAddr;
-    address private _liquidator;
-    IPancakeRouter02 private _dexRouter;
-
     /* Reward calculation */
 
+    uint256 private _totalExcluded;
     uint256 private _circulation;
     uint256 private _balanceCoeff;
+    uint256 private _minBalanceCoeff;
 
-    /* Treasury and Reserve */
+    /* Treasury */
 
     address private _treasuryAddr;
-    address private _reserveAddr;
 
-    /* Presale */
+    /* Special addresses (lockers, reserve, liquidity pools...) */
 
-    address private _presaleContractAddr;
+    mapping(address => bool) private _excludedFromTax;
+    mapping(address => bool) private _excludedFromFines;
+    mapping(address => bool) private _excludedFromReflects;
+    mapping(address => bool) private _excludedFromMaxBalance;
+    mapping(address => bool) private _excludedFromFineAndTaxDestinations;
+
+    /**
+     * Admins can exclude or include addresses from tax, reflections or
+     * maximum balance. An example is a Deployer creating a Kenshi Locker.
+     */
+
+    mapping(address => bool) private _adminAddrs;
 
     /* Tokenomics */
 
@@ -442,56 +215,69 @@ contract BEP20Token is Context, IBEP20, Ownable {
         _name = "Kenshi";
         _symbol = "KENSHI";
 
-        /*
-            Large supply and large decimal places were 
-            to help with the accuracy loss caused by
-            the reward system.
-        */
+        /**
+         * Large supply and large decimal places are to help with
+         * the accuracy loss caused by the reward system.
+         */
 
         _decimals = 18;
-        _totalSupply = 1e13 * 1e18;
+        _totalSupply = 10e12 * 1e18;
         _balances[msg.sender] = _totalSupply;
 
         emit Transfer(address(0), msg.sender, _totalSupply);
 
         /* Kenshi related */
 
-        _dexAddr = address(0);
-        _routerAddr = address(0);
-        _liquidator = msg.sender;
-
         _baseTax = 5;
         _burnPercentage = 1;
         _investPercentage = 50;
 
+        /* Give the required privileges to the owner */
+
+        _adminAddrs[msg.sender] = true;
+        _excludedFromTax[msg.sender] = true;
+        _excludedFromFines[msg.sender] = true;
+        _excludedFromReflects[msg.sender] = true;
+        _excludedFromMaxBalance[msg.sender] = true;
+        _excludedFromFineAndTaxDestinations[msg.sender] = true;
+
         /* Burning */
 
         _burnAddr = address(0xdead);
-        _burnThreshold = _totalSupply.div(2);
+        _burnThreshold = _totalSupply / 2;
 
-        /* Treasury and Reserve */
+        _excludedFromReflects[_burnAddr] = true;
+        _excludedFromMaxBalance[_burnAddr] = true;
+        _excludedFromFineAndTaxDestinations[_burnAddr] = true;
+
+        /* Treasury */
 
         _treasuryAddr = address(0);
-        _reserveAddr = address(0);
 
-        /* Presale */
+        /* Set initial max balance, this amount increases over time */
 
-        _presaleContractAddr = address(0);
+        _minMaxBalance = _totalSupply / 100;
 
-        /* 
-            Set initial max balance, this amount
-            increases over time
-        */
+        /**
+         * This value gives us maximum precision without facing overflows
+         * or underflows. Be careful when updating the _totalSupply or
+         * the value below.
+         */
 
-        _minMaxBalance = _totalSupply.div(100);
+        _balanceCoeff = (~uint256(0)) / _totalSupply;
+        _minBalanceCoeff = 1e18;
 
-        /*
-            This value gives us maximum precision without
-            facing overflows or underflows. Be careful when
-            updating the _totalSupply or the value below.
-        */
+        /* Other initial variable values */
 
-        _balanceCoeff = (~uint256(0)).div(_totalSupply);
+        _totalExcluded = _totalSupply;
+    }
+
+    /**
+     * @dev Throws if called by any account other than the admins.
+     */
+    modifier onlyAdmins() {
+        require(_adminAddrs[_msgSender()], "Kenshi: Caller is not an admin");
+        _;
     }
 
     /**
@@ -533,10 +319,10 @@ contract BEP20Token is Context, IBEP20, Ownable {
      * @dev See {BEP20-balanceOf}.
      */
     function balanceOf(address account) public view returns (uint256) {
-        if (_isExcluded(account)) {
+        if (isExcluded(account)) {
             return _balances[account];
         }
-        return _balances[account].div(_balanceCoeff);
+        return _balances[account] / _balanceCoeff;
     }
 
     /**
@@ -547,10 +333,7 @@ contract BEP20Token is Context, IBEP20, Ownable {
      * - `recipient` cannot be the zero address.
      * - the caller must have a balance of at least `amount`.
      */
-    function transfer(address recipient, uint256 amount)
-        external
-        returns (bool)
-    {
+    function transfer(address recipient, uint256 amount) public returns (bool) {
         _transfer(_msgSender(), recipient, amount);
         return true;
     }
@@ -573,7 +356,7 @@ contract BEP20Token is Context, IBEP20, Ownable {
      *
      * - `spender` cannot be the zero address.
      */
-    function approve(address spender, uint256 amount) external returns (bool) {
+    function approve(address spender, uint256 amount) public returns (bool) {
         _approve(_msgSender(), spender, amount);
         return true;
     }
@@ -594,15 +377,16 @@ contract BEP20Token is Context, IBEP20, Ownable {
         address sender,
         address recipient,
         uint256 amount
-    ) external returns (bool) {
+    ) public returns (bool) {
+        require(
+            _allowances[sender][_msgSender()] > amount,
+            "BEP20: transfer amount exceeds allowance"
+        );
         _transfer(sender, recipient, amount);
         _approve(
             sender,
             _msgSender(),
-            _allowances[sender][_msgSender()].sub(
-                amount,
-                "BEP20: transfer amount exceeds allowance"
-            )
+            _allowances[sender][_msgSender()] - amount
         );
         return true;
     }
@@ -626,7 +410,7 @@ contract BEP20Token is Context, IBEP20, Ownable {
         _approve(
             _msgSender(),
             spender,
-            _allowances[_msgSender()][spender].add(addedValue)
+            _allowances[_msgSender()][spender] + addedValue
         );
         return true;
     }
@@ -649,13 +433,14 @@ contract BEP20Token is Context, IBEP20, Ownable {
         external
         returns (bool)
     {
+        require(
+            _allowances[_msgSender()][spender] > subtractedValue,
+            "BEP20: decreased allowance below zero"
+        );
         _approve(
             _msgSender(),
             spender,
-            _allowances[_msgSender()][spender].sub(
-                subtractedValue,
-                "BEP20: decreased allowance below zero"
-            )
+            _allowances[_msgSender()][spender] - subtractedValue
         );
         return true;
     }
@@ -688,76 +473,112 @@ contract BEP20Token is Context, IBEP20, Ownable {
     ) internal {
         require(sender != address(0), "BEP20: transfer from the zero address");
         require(recipient != address(0), "BEP20: transfer to the zero address");
+        require(amount > 0, "Kenshi: Transfer amount should be bigger than 0");
 
-        if (sender == owner() && _dexAddr == address(0)) {
-            /* Transfering to DEX, do it tax free */
-            _balances[sender] = _balances[sender].sub(amount);
-            _balances[recipient] = _balances[recipient].add(amount);
-            _dexAddr = recipient;
-            emit Transfer(sender, recipient, amount);
-            return;
-        }
-
-        if (_isTaxless(sender) || _isTaxless(recipient)) {
+        if (
+            (isTaxless(sender) && isFineFree(sender)) ||
+            isTaxlessDestination(recipient)
+        ) {
             uint256 rOutgoing = _getTransferAmount(sender, amount);
             uint256 rIncoming = _getTransferAmount(recipient, amount);
-            _balances[sender] = _balances[sender].sub(rOutgoing);
-            _balances[recipient] = _balances[recipient].add(rIncoming);
+
+            require(
+                rOutgoing <= _balances[sender],
+                "Kenshi: Balance is lower than the requested amount"
+            );
+
+            /* Required for migrations and making a liquidity pool */
+            if (_tradeOpen || sender != owner()) {
+                require(
+                    _checkMaxBalance(recipient, rIncoming),
+                    "Kenshi: Resulting balance more than the maximum allowed"
+                );
+            }
+
+            _balances[sender] = _balances[sender] - rOutgoing;
+            _balances[recipient] = _balances[recipient] + rIncoming;
+
+            if (isExcluded(sender) && !isExcluded(recipient)) {
+                _totalExcluded = _totalExcluded - amount;
+            } else if (!isExcluded(sender) && isExcluded(recipient)) {
+                _totalExcluded = _totalExcluded + amount;
+            }
+
             emit Transfer(sender, recipient, amount);
+
             return;
         }
 
-        require(
-            _tradeOpen || isWhitelisted(recipient),
-            "Kenshi: trading is not open yet"
-        );
+        require(_tradeOpen, "Kenshi: Trading is not open yet");
 
         uint256 burn = _getBurnAmount(amount);
-        uint256 tax = _getTax(sender, amount).sub(burn);
+        uint256 rawTax = _getTax(sender, amount);
+        uint256 tax = rawTax > burn ? rawTax - burn : 0;
 
         /* Split the tax */
 
-        uint256 invest = tax.mul(_investPercentage).div(100);
-        uint256 reward = tax.sub(invest);
+        uint256 invest = (tax * _investPercentage) / 100;
+        uint256 reward = tax - invest;
 
-        uint256 remainingAmount = amount.sub(tax).sub(burn);
+        uint256 remainingAmount = amount - tax - burn;
         uint256 outgoing = _getTransferAmount(sender, amount);
         uint256 incoming = _getTransferAmount(recipient, remainingAmount);
 
         require(
             outgoing <= _balances[sender],
-            "Balance is lower than the requested amount"
+            "Kenshi: Balance is lower than the requested amount"
         );
 
         require(
             _checkMaxBalance(recipient, incoming),
-            "Kenshi: resulting balance more than the maximum allowed"
+            "Kenshi: Resulting balance more than the maximum allowed"
         );
 
-        if (_treasuryAddr != address(0)) {
-            _balances[_treasuryAddr] = _balances[_treasuryAddr].add(invest);
-            emit Transfer(sender, _treasuryAddr, invest);
-        } else {
-            reward = reward.add(invest);
+        if (invest > 0) {
+            if (_treasuryAddr != address(0)) {
+                _balances[_treasuryAddr] = _balances[_treasuryAddr] + invest;
+                _totalExcluded = _totalExcluded + invest;
+                emit Transfer(sender, _treasuryAddr, invest);
+            } else {
+                reward = reward + invest;
+            }
         }
 
         if (burn > 0) {
-            _balances[_burnAddr] = _balances[_burnAddr].add(burn);
+            _balances[_burnAddr] = _balances[_burnAddr] + burn;
+            _totalExcluded = _totalExcluded + burn;
             emit Transfer(sender, _burnAddr, burn);
         }
 
-        _balances[sender] = _balances[sender].sub(outgoing);
-        _balances[recipient] = _balances[recipient].add(incoming);
+        _balances[sender] = _balances[sender] - outgoing;
+        _balances[recipient] = _balances[recipient] + incoming;
 
-        emit Transfer(sender, recipient, amount.sub(burn).sub(tax));
+        emit Transfer(sender, recipient, remainingAmount);
 
-        _circulation = _totalSupply.sub(_totalExcluded());
+        if (isExcluded(sender)) {
+            _totalExcluded = _totalExcluded - amount;
+        }
 
-        emit Reflect(reward);
+        if (isExcluded(recipient)) {
+            _totalExcluded = _totalExcluded + remainingAmount;
+        }
 
-        _balanceCoeff = _balanceCoeff.sub(
-            _balanceCoeff.mul(reward).div(_circulation)
-        );
+        _circulation = _totalSupply - _totalExcluded;
+        uint256 delta = (_balanceCoeff * reward) / _circulation;
+        bool shouldReflect = _balanceCoeff - delta > _minBalanceCoeff;
+
+        if (reward > 0 && !shouldReflect && _treasuryAddr != address(0)) {
+            _balances[_treasuryAddr] = _balances[_treasuryAddr] + reward;
+            _totalExcluded = _totalExcluded + reward;
+            emit Transfer(sender, _treasuryAddr, reward);
+        } else if (shouldReflect && delta < _balanceCoeff) {
+            _balanceCoeff = _balanceCoeff - delta;
+            emit Reflect(reward);
+        } else if (reward > 0) {
+            _balances[_burnAddr] = _balances[_burnAddr] + reward;
+            _totalExcluded = _totalExcluded + reward;
+            emit Transfer(sender, _burnAddr, reward);
+        }
 
         _recordPurchase(recipient, incoming);
     }
@@ -787,19 +608,188 @@ contract BEP20Token is Context, IBEP20, Ownable {
         emit Approval(addr, spender, amount);
     }
 
+    /* ERC165 methods */
+
+    /**
+     * @dev See {IERC165-supportsInterface}.
+     */
+    function supportsInterface(bytes4 interfaceId)
+        external
+        pure
+        returns (bool)
+    {
+        return interfaceId == type(IBEP1363).interfaceId;
+    }
+
+    /* BEP1363 methods */
+
+    /**
+     * @dev Transfer tokens to a specified address and then execute a callback on recipient.
+     * @param recipient The address to transfer to.
+     * @param amount The amount to be transferred.
+     * @return A boolean that indicates if the operation was successful.
+     */
+    function transferAndCall(address recipient, uint256 amount)
+        external
+        returns (bool)
+    {
+        return transferAndCall(recipient, amount, "");
+    }
+
+    /**
+     * @dev Transfer tokens to a specified address and then execute a callback on recipient.
+     * @param recipient The address to transfer to
+     * @param amount The amount to be transferred
+     * @param data Additional data with no specified format
+     * @return A boolean that indicates if the operation was successful.
+     */
+    function transferAndCall(
+        address recipient,
+        uint256 amount,
+        bytes memory data
+    ) public returns (bool) {
+        transfer(recipient, amount);
+        require(
+            _checkAndCallTransfer(_msgSender(), recipient, amount, data),
+            "BEP1363: _checkAndCallTransfer reverts"
+        );
+        return true;
+    }
+
+    /**
+     * @dev Transfer tokens from one address to another and then execute a callback on recipient.
+     * @param sender The address which you want to send tokens from
+     * @param recipient The address which you want to transfer to
+     * @param amount The amount of tokens to be transferred
+     * @return A boolean that indicates if the operation was successful.
+     */
+    function transferFromAndCall(
+        address sender,
+        address recipient,
+        uint256 amount
+    ) external returns (bool) {
+        return transferFromAndCall(sender, recipient, amount, "");
+    }
+
+    /**
+     * @dev Transfer tokens from one address to another and then execute a callback on recipient.
+     * @param sender The address which you want to send tokens from
+     * @param recipient The address which you want to transfer to
+     * @param amount The amount of tokens to be transferred
+     * @param data Additional data with no specified format
+     * @return A boolean that indicates if the operation was successful.
+     */
+    function transferFromAndCall(
+        address sender,
+        address recipient,
+        uint256 amount,
+        bytes memory data
+    ) public returns (bool) {
+        transferFrom(sender, recipient, amount);
+        require(
+            _checkAndCallTransfer(sender, recipient, amount, data),
+            "BEP1363: _checkAndCallTransfer reverts"
+        );
+        return true;
+    }
+
+    /**
+     * @dev Approve spender to transfer tokens and then execute a callback on recipient.
+     * @param spender The address allowed to transfer to
+     * @param amount The amount allowed to be transferred
+     * @return A boolean that indicates if the operation was successful.
+     */
+    function approveAndCall(address spender, uint256 amount)
+        external
+        returns (bool)
+    {
+        return approveAndCall(spender, amount, "");
+    }
+
+    /**
+     * @dev Approve spender to transfer tokens and then execute a callback on recipient.
+     * @param spender The address allowed to transfer to.
+     * @param amount The amount allowed to be transferred.
+     * @param data Additional data with no specified format.
+     * @return A boolean that indicates if the operation was successful.
+     */
+    function approveAndCall(
+        address spender,
+        uint256 amount,
+        bytes memory data
+    ) public returns (bool) {
+        approve(spender, amount);
+        require(
+            _checkAndCallApprove(spender, amount, data),
+            "BEP1363: _checkAndCallApprove reverts"
+        );
+        return true;
+    }
+
+    /**
+     * @dev Internal function to invoke `onTransferReceived` on a target address
+     *  The call is not executed if the target address is not a contract
+     * @param sender address Representing the previous owner of the given token value
+     * @param recipient address Target address that will receive the tokens
+     * @param amount uint256 The amount mount of tokens to be transferred
+     * @param data bytes Optional data to send along with the call
+     * @return whether the call correctly returned the expected magic value
+     */
+    function _checkAndCallTransfer(
+        address sender,
+        address recipient,
+        uint256 amount,
+        bytes memory data
+    ) internal returns (bool) {
+        if (!recipient.isContract()) {
+            return false;
+        }
+        bytes4 retval = IBEP1363Receiver(recipient).onTransferReceived(
+            _msgSender(),
+            sender,
+            amount,
+            data
+        );
+        return (retval ==
+            IBEP1363Receiver(recipient).onTransferReceived.selector);
+    }
+
+    /**
+     * @dev Internal function to invoke `onApprovalReceived` on a target address
+     *  The call is not executed if the target address is not a contract
+     * @param spender address The address which will spend the funds
+     * @param amount uint256 The amount of tokens to be spent
+     * @param data bytes Optional data to send along with the call
+     * @return whether the call correctly returned the expected magic value
+     */
+    function _checkAndCallApprove(
+        address spender,
+        uint256 amount,
+        bytes memory data
+    ) internal returns (bool) {
+        if (!spender.isContract()) {
+            return false;
+        }
+        bytes4 retval = IBEP1363Spender(spender).onApprovalReceived(
+            _msgSender(),
+            amount,
+            data
+        );
+        return (retval == IBEP1363Spender(spender).onApprovalReceived.selector);
+    }
+
     /* Kenshi methods */
 
     /**
      * @dev Records weighted purchase times for fine calculation.
      */
     function _recordPurchase(address addr, uint256 amount) private {
-        uint256 current = _purchaseTimes[addr].mul(
-            _decoeff(addr, _balances[addr].sub(amount))
-        );
+        uint256 current = _purchaseTimes[addr] *
+            _decoeff(addr, _balances[addr] - amount);
 
-        _purchaseTimes[addr] = current
-            .add(block.timestamp.mul(_decoeff(addr, amount)))
-            .div(balanceOf(addr));
+        _purchaseTimes[addr] =
+            (current + block.timestamp * _decoeff(addr, amount)) /
+            balanceOf(addr);
     }
 
     /**
@@ -810,55 +800,107 @@ contract BEP20Token is Context, IBEP20, Ownable {
         view
         returns (uint256)
     {
-        if (_isExcluded(addr)) {
+        if (isExcluded(addr)) {
             return amount;
         }
-        return amount.div(_balanceCoeff);
+        return amount / _balanceCoeff;
     }
 
     /**
-     * @dev Check if `addr` is excluded from rewards.
+     * @dev Check if `addr` is excluded from tax.
      */
-    function _isExcluded(address addr) private view returns (bool) {
-        return
-            addr == owner() ||
-            addr == _dexAddr ||
-            addr == _routerAddr ||
-            addr == _treasuryAddr ||
-            addr == _reserveAddr ||
-            addr == address(this);
+    function isTaxlessDestination(address addr) public view returns (bool) {
+        return _excludedFromFineAndTaxDestinations[addr];
     }
 
     /**
-     * @dev Check if `addr` is excluded from rewards.
+     * @dev Set `addr` is excluded from tax to `state`.
      */
-    function _totalExcluded() private view returns (uint256) {
-        return
-            balanceOf(owner())
-                .add(balanceOf(_dexAddr))
-                .add(balanceOf(_routerAddr))
-                .add(balanceOf(_treasuryAddr))
-                .add(balanceOf(_reserveAddr))
-                .add(balanceOf(address(this)));
+    function setIsTaxlessDestination(address addr, bool state)
+        public
+        onlyAdmins
+    {
+        _excludedFromFineAndTaxDestinations[addr] = state;
     }
 
     /**
-     * @dev Check if a tx for `addr` should be tax-less.
-     *
-     * Owner transaction should be tax-less, this is either a
-     * liquidity adding tx or someone sending tokens to the
-     * contract address by mistake.
-     *
-     * Router transactions should be tax-free to allow removing
-     * liquidity pool tokens.
+     * @dev Check if `addr` is excluded from tax.
      */
-    function _isTaxless(address addr) private view returns (bool) {
-        return
-            addr == _routerAddr ||
-            addr == _reserveAddr ||
-            addr == _treasuryAddr ||
-            addr == owner() ||
-            addr == address(this);
+    function isTaxless(address addr) public view returns (bool) {
+        return _excludedFromTax[addr];
+    }
+
+    /**
+     * @dev Set `addr` is excluded from tax to `state`.
+     */
+    function setIsTaxless(address addr, bool state) public onlyAdmins {
+        _excludedFromTax[addr] = state;
+    }
+
+    /**
+     * @dev Check if `addr` is excluded from fines.
+     */
+    function isFineFree(address addr) public view returns (bool) {
+        return _excludedFromFines[addr];
+    }
+
+    /**
+     * @dev Set `addr` is excluded from fines to `state`.
+     */
+    function setIsFineFree(address addr, bool state) public onlyAdmins {
+        _excludedFromFines[addr] = state;
+    }
+
+    /**
+     * @dev Check if `addr` is excluded from reflects.
+     */
+    function isExcluded(address addr) public view returns (bool) {
+        return _excludedFromReflects[addr];
+    }
+
+    /**
+     * @dev Set `addr` is excluded from reflections to `state`.
+     */
+    function setIsExcluded(address addr, bool state) public onlyAdmins {
+        if (isExcluded(addr) && !state) {
+            uint256 balance = _balances[addr];
+            _totalExcluded = _totalExcluded - balance;
+            _balances[addr] = _balances[addr] * _balanceCoeff;
+        } else if (!isExcluded(addr) && state) {
+            uint256 balance = _balances[addr] / _balanceCoeff;
+            _totalExcluded = _totalExcluded + balance;
+            _balances[addr] = balance;
+        }
+
+        _excludedFromReflects[addr] = state;
+    }
+
+    /**
+     * @dev Check if `addr` is excluded from max balance limit.
+     */
+    function isLimitless(address addr) public view returns (bool) {
+        return _excludedFromMaxBalance[addr];
+    }
+
+    /**
+     * @dev Set `addr` is excluded from max balance to `state`.
+     */
+    function setIsLimitless(address addr, bool state) public onlyAdmins {
+        _excludedFromMaxBalance[addr] = state;
+    }
+
+    /**
+     * @dev Check if `addr` is an admin.
+     */
+    function isAdmin(address addr) external view returns (bool) {
+        return _adminAddrs[addr];
+    }
+
+    /**
+     * @dev Set `addr` is excluded from reflections to `state`.
+     */
+    function setIsAdmin(address addr, bool state) external onlyAdmins {
+        _adminAddrs[addr] = state;
     }
 
     /**
@@ -873,9 +915,9 @@ contract BEP20Token is Context, IBEP20, Ownable {
         if (_burnedAmount >= _burnThreshold) {
             return 0;
         }
-        uint256 toBurn = amount.div(100);
-        if (_burnThreshold.sub(_burnedAmount) < toBurn) {
-            return _burnThreshold.sub(_burnedAmount);
+        uint256 toBurn = amount / 100;
+        if (_burnThreshold - _burnedAmount < toBurn) {
+            return _burnThreshold - _burnedAmount;
         }
         return toBurn;
     }
@@ -885,6 +927,13 @@ contract BEP20Token is Context, IBEP20, Ownable {
      */
     function getTotalBurned() external view returns (uint256) {
         return _balances[_burnAddr];
+    }
+
+    /**
+     * @dev Check how many tokens are currently excluded.
+     */
+    function getTotalExcluded() external view returns (uint256) {
+        return _totalExcluded;
     }
 
     /**
@@ -903,7 +952,7 @@ contract BEP20Token is Context, IBEP20, Ownable {
         returns (uint256)
     {
         uint8 taxPercentage = _getTaxPercentage(sender);
-        uint256 tax = amount.mul(taxPercentage).div(100);
+        uint256 tax = (amount * taxPercentage) / 100;
         return tax;
     }
 
@@ -911,34 +960,33 @@ contract BEP20Token is Context, IBEP20, Ownable {
      * @dev calculate tax percentage for `sender` based on purchase times.
      */
     function _getTaxPercentage(address sender) private view returns (uint8) {
-        if (_isExcluded(sender)) {
-            return _baseTax;
-        }
-        uint256 daysPassed = block.timestamp.sub(_purchaseTimes[sender]).div(
-            86400
-        );
-        if (daysPassed >= 30) {
-            return _baseTax;
-        }
-        return _baseTax + _earlySaleFines[daysPassed];
+        return getTaxPercentageAt(sender, block.timestamp);
     }
 
     /**
      * @dev calculate tax percentage for `sender` at `timestamp` based on purchase times.
      */
     function getTaxPercentageAt(address sender, uint256 timestamp)
-        external
+        public
         view
         returns (uint8)
     {
-        if (_isExcluded(sender)) {
+        bool taxFree = isTaxless(sender);
+        bool fineFree = isFineFree(sender);
+        if (taxFree && fineFree) {
+            return 0;
+        }
+        if (fineFree) {
             return _baseTax;
         }
-        uint256 daysPassed = timestamp.sub(_purchaseTimes[sender]).div(86400);
+        uint256 daysPassed = (timestamp - _purchaseTimes[sender]) / 86400;
         if (daysPassed >= 30) {
-            return _baseTax;
+            return taxFree ? 0 : _baseTax;
         }
-        return _baseTax + _earlySaleFines[daysPassed];
+        return
+            taxFree
+                ? _earlySaleFines[daysPassed]
+                : _baseTax + _earlySaleFines[daysPassed];
     }
 
     /**
@@ -949,10 +997,10 @@ contract BEP20Token is Context, IBEP20, Ownable {
         view
         returns (uint256)
     {
-        if (_isExcluded(sender)) {
+        if (isExcluded(sender)) {
             return amount;
         }
-        return amount.mul(_balanceCoeff);
+        return amount * _balanceCoeff;
     }
 
     /**
@@ -963,28 +1011,25 @@ contract BEP20Token is Context, IBEP20, Ownable {
         view
         returns (bool)
     {
-        if (_isExcluded(recipient)) {
+        if (isLimitless(recipient)) {
             return true;
         }
-        uint256 newBalance = _balances[recipient].add(incoming);
-        return newBalance.div(_balanceCoeff) <= getMaxBalance();
+        uint256 newBalance = _balances[recipient] + incoming;
+        return (newBalance / _balanceCoeff) <= getMaxBalance();
     }
 
     /**
      * @dev Returns the current maximum balance.
      */
     function getMaxBalance() public view returns (uint256) {
-        return _minMaxBalance.add(_circulation.div(100));
+        return _minMaxBalance + _circulation / 100;
     }
 
     /**
-     * @dev Checks if `addr` is whitelisted for IDO presale.
+     * @dev Returns the current balance coefficient.
      */
-    function isWhitelisted(address addr) public view returns (bool) {
-        if (_presaleContractAddr == address(0)) {
-            return false;
-        }
-        return IPresale(_presaleContractAddr).isWhitelisted(addr);
+    function getCurrentCoeff() external view returns (uint256) {
+        return _balanceCoeff;
     }
 
     /**
@@ -1000,77 +1045,24 @@ contract BEP20Token is Context, IBEP20, Ownable {
 
         require(
             outgoing <= _balances[sender],
-            "Kenshi: cannot deliver more than the owned balance"
+            "Kenshi: Cannot deliver more than the owned balance"
         );
 
-        _balances[sender] = _balances[sender].sub(outgoing);
-        _circulation = _totalSupply.sub(_totalExcluded());
-        _balanceCoeff = _balanceCoeff.sub(
-            _balanceCoeff.mul(amount).div(_circulation)
+        _balances[sender] = _balances[sender] - outgoing;
+
+        if (isExcluded(sender)) {
+            _totalExcluded = _totalExcluded - amount;
+            _circulation = _totalSupply - _totalExcluded;
+        }
+
+        _balanceCoeff = _balanceCoeff - (_balanceCoeff * amount) / _circulation;
+
+        require(
+            _balanceCoeff > _minBalanceCoeff,
+            "Kenshi: Coefficient smaller than the minimum defined"
         );
 
         emit Reflect(amount);
-    }
-
-    /**
-     * @dev Sets the current DEX address to `dex`.
-     *
-     * Requirements:
-     *
-     * - `dex` should not be address(0)
-     */
-    function setDexAddr(address dex) external onlyOwner {
-        require(dex != address(0), "Kenshi: cannot set DEX addr to 0x0");
-        _dexAddr = dex;
-    }
-
-    /**
-     * @dev Get the current DEX address.
-     */
-    function getDexAddr() external view returns (address) {
-        return _dexAddr;
-    }
-
-    /**
-     * @dev Sets the liquidator address to `liquidator`.
-     *
-     * Requirements:
-     *
-     * - `liquidator` should not be address(0)
-     */
-    function setLiquidatorAddr(address liquidator) external onlyOwner {
-        require(
-            liquidator != address(0),
-            "Kenshi: cannot set liquidator addr to 0x0"
-        );
-        _liquidator = liquidator;
-    }
-
-    /**
-     * @dev Get the current liquidator address.
-     */
-    function getLiquidatorAddr() external view returns (address) {
-        return _liquidator;
-    }
-
-    /**
-     * @dev Sets the current DEX router address to `router`.
-     *
-     * Requirements:
-     *
-     * - `router` should not be address(0)
-     */
-    function setDexRouterAddr(address router) external onlyOwner {
-        require(router != address(0), "Kenshi: cannot set router addr to 0x0");
-        _routerAddr = router;
-        _dexRouter = IPancakeRouter02(_routerAddr);
-    }
-
-    /**
-     * @dev Get the current DEX router address.
-     */
-    function getDexRouterAddr() external view returns (address) {
-        return _routerAddr;
     }
 
     event InvestmentPercentageChanged(uint8 percentage);
@@ -1136,35 +1128,21 @@ contract BEP20Token is Context, IBEP20, Ownable {
      * - `treasury` should not be address(0)
      */
     function setTreasuryAddr(address treasury) external onlyOwner {
-        require(treasury != address(0), "Kenshi: cannot set treasury to 0x0");
+        require(treasury != address(0), "Kenshi: Cannot set treasury to 0x0");
+
+        if (_treasuryAddr != address(0)) {
+            setIsTaxless(_treasuryAddr, false);
+            setIsFineFree(_treasuryAddr, false);
+            setIsExcluded(_treasuryAddr, false);
+            setIsLimitless(_treasuryAddr, false);
+        }
+
         _treasuryAddr = treasury;
-    }
 
-    /**
-     * @dev Sets `reserve` addr for accepting payments in Kenshi.
-     *
-     * Requirements:
-     *
-     * - `reserve` should not be address(0)
-     */
-    function setReserveAddr(address reserve) external onlyOwner {
-        require(reserve != address(0), "Kenshi: cannot set reserve to 0x0");
-        _reserveAddr = reserve;
-    }
-
-    /**
-     * @dev Sets `treasury` addr for collecting investment tokens.
-     *
-     * Requirements:
-     *
-     * - `treasury` should not be address(0)
-     */
-    function setPresaleContractAddr(address presale) external onlyOwner {
-        require(
-            presale != address(0),
-            "Kenshi: cannot set presale addr to 0x0"
-        );
-        _presaleContractAddr = presale;
+        setIsTaxless(_treasuryAddr, true);
+        setIsFineFree(_treasuryAddr, true);
+        setIsExcluded(_treasuryAddr, true);
+        setIsLimitless(_treasuryAddr, true);
     }
 
     event BurnThresholdChanged(uint256 threshold);
@@ -1184,117 +1162,6 @@ contract BEP20Token is Context, IBEP20, Ownable {
      */
     function getBurnThreshold() external view returns (uint256) {
         return _burnThreshold;
-    }
-
-    /**
-     * @dev Un-owns `amount` from sender.
-     *
-     * The un-owned amount gets injected to the liquidity pool in small
-     * chunks on each tx.
-     */
-    function unOwn(uint256 amount) external {
-        require(
-            balanceOf(_msgSender()) >= amount,
-            "Kenshi: Cannot un-own more than what is owned"
-        );
-        uint256 outAmount = _getTransferAmount(_msgSender(), amount);
-        _balances[_msgSender()] = _balances[_msgSender()].sub(outAmount);
-        _balances[address(this)] = _balances[address(this)].add(amount);
-        emit Transfer(_msgSender(), address(this), amount);
-    }
-
-    /**
-     * @dev Returns the un-owned amount.
-     */
-    function getUnOwned() external view returns (uint256) {
-        return _balances[address(this)];
-    }
-
-    /**
-     * @dev Sells `tokenAmount` for BNB.
-     */
-    function _swapTokensForBNB(uint256 tokenAmount) private {
-        address[] memory path = new address[](2);
-        path[0] = address(this);
-        path[1] = _dexRouter.WETH();
-
-        _approve(address(this), _routerAddr, tokenAmount);
-
-        _dexRouter.swapExactTokensForETHSupportingFeeOnTransferTokens(
-            tokenAmount,
-            0,
-            path,
-            address(this),
-            block.timestamp
-        );
-    }
-
-    /**
-     * @dev Adds `tokenAmount` against `bnbAmount` into the liquidity pool.
-     */
-    function _addLiquidity(uint256 tokenAmount, uint256 bnbAmount) private {
-        _approve(address(this), _routerAddr, tokenAmount);
-
-        _dexRouter.addLiquidityETH{value: bnbAmount}(
-            address(this),
-            tokenAmount,
-            0,
-            0,
-            owner(),
-            block.timestamp
-        );
-    }
-
-    event LiquidityAdded(uint256 sold, uint256 bnb, uint256 injected);
-
-    /**
-     * @dev Adds `amount` from un-owned balance to the liquidity pool.
-     */
-    function swapAndLiquify(uint256 amount) public {
-        require(
-            _msgSender() == _liquidator,
-            "Kenshi: Only the liquidator can call this function."
-        );
-
-        if (_balances[address(this)] == 0) {
-            return;
-        }
-
-        if (amount > _balances[address(this)]) {
-            amount = _balances[address(this)];
-            _balances[address(this)] = 0;
-        } else {
-            _balances[address(this)] = _balances[address(this)].sub(amount);
-        }
-
-        uint256 half = amount.div(2);
-        uint256 rest = amount.sub(half);
-        uint256 initialBalance = address(this).balance;
-
-        _swapTokensForBNB(half);
-        uint256 diffBalance = address(this).balance.sub(initialBalance);
-        _addLiquidity(rest, diffBalance);
-        emit LiquidityAdded(half, diffBalance, rest);
-    }
-
-    /**
-     * @dev Receive BNB. Required for liquidity bootstrapping.
-     */
-    receive() external payable {}
-
-    /**
-     * @dev Sends `amount` of BNB from contract address to `recipient`
-     *
-     * Useful if someone sent some BNBs to the contract address by mistake.
-     */
-    function recoverBNB(address payable recipient, uint256 amount)
-        external
-        onlyOwner
-    {
-        require(amount != 0, "Amount cannot be 0");
-        require(recipient != address(0), "Cannot send to address 0x0");
-        (bool sent, ) = recipient.call{value: amount}("");
-        require(sent, "Failed to send Ether");
     }
 
     /**

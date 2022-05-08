@@ -4,7 +4,9 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "test": "NODE_NO_WARNINGS=1 hardhat test",
+    "test": "NODE_NO_WARNINGS=1 hardhat test --grep Short",
+    "test:long": "NODE_NO_WARNINGS=1 hardhat test --grep Long",
+    "test:all": "NODE_NO_WARNINGS=1 hardhat test",
     "coverage": "NODE_NO_WARNINGS=1 hardhat coverage",
     "compile": "NODE_NO_WARNINGS=1 hardhat compile",
     "size": "npm run clean && NODE_NO_WARNINGS=1 hardhat compile",
@@ -19,17 +21,14 @@
   "author": "",
   "license": "UNLICENSED",
   "devDependencies": {
-    "@nomiclabs/hardhat-ethers": "^2.0.2",
+    "@nomiclabs/hardhat-ethers": "^2.0.4",
     "@nomiclabs/hardhat-waffle": "^2.0.1",
     "chai": "^4.3.4",
     "ethereum-waffle": "^3.4.0",
-    "ethers": "^5.5.1",
-    "hardhat": "^2.6.8",
-    "hardhat-contract-sizer": "^2.1.1",
+    "ethers": "^5.5.3",
+    "hardhat": "^2.8.2",
+    "hardhat-contract-sizer": "^2.3.1",
     "solidity-coverage": "^0.7.17",
-    "web3": "^1.6.0"
-  },
-  "dependencies": {
-    "pancakeswap-peripheral": "^1.1.0-beta.0"
+    "web3": "^1.6.1"
   }
 }
