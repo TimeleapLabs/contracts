@@ -86,6 +86,7 @@ contract Migrate {
         require(_enabled, "Kenshi: Migrations are disabled");
         address account = msg.sender;
         uint256 v1Balance = _v1Token.balanceOf(account);
+        uint256 preV2Balance = _v2Token.balanceOf(account);
         bool v1Transfer = _v1Token.transferFrom(
             account,
             _v1Recipient,
@@ -100,7 +101,7 @@ contract Migrate {
         require(v2Transfer, "Kenshi: V2 transferFrom failed");
         uint256 v2Balance = _v2Token.balanceOf(account);
         require(
-            v1Balance == v2Balance,
+            v1Balance == v2Balance - preV2Balance,
             "Kenshi: Failed to transfer exact amount"
         );
     }

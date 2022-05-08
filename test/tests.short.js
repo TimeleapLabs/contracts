@@ -94,6 +94,19 @@ describe("Kenshi (Short)", function () {
     expect(total).to.equal("9999999999999999999999999999999");
   });
 
+  it("Only admins should be able to call admin functions", async function () {
+    const Kenshi = await ethers.getContractFactory("Kenshi");
+    const kenshi = await Kenshi.deploy();
+    await kenshi.deployed();
+    await kenshi.openTrades();
+
+    const [_owner, addr1] = await ethers.getSigners();
+
+    expect(
+      kenshi.connect(addr1).setIsFineFree(addr1.address, true)
+    ).to.be.revertedWith("Kenshi: Caller is not an admin");
+  });
+
   it("Burning should be tax-free", async function () {
     const Kenshi = await ethers.getContractFactory("Kenshi");
     const kenshi = await Kenshi.deploy();
