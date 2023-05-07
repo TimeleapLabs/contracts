@@ -4,8 +4,7 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "test": "NODE_NO_WARNINGS=1 hardhat test --grep Short",
-    "test:long": "NODE_NO_WARNINGS=1 hardhat test --grep Long",
+    "test": "NODE_NO_WARNINGS=1 hardhat test",
     "test:all": "NODE_NO_WARNINGS=1 hardhat test",
     "coverage": "NODE_NO_WARNINGS=1 hardhat coverage",
     "compile": "NODE_NO_WARNINGS=1 hardhat compile",
@@ -30,5 +29,9 @@
     "hardhat-contract-sizer": "^2.3.1",
     "solidity-coverage": "^0.7.17",
     "web3": "^1.6.1"
+  },
+  "dependencies": {
+    "@openzeppelin/contracts": "^4.8.3",
+    "@poanet/solidity-flattener": "^3.0.7"
   }
 }
