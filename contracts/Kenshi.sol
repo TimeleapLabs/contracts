@@ -2,12 +2,10 @@
 pragma solidity 0.8.19;
 
 import "@openzeppelin/contracts/interfaces/IERC20.sol";
-import "@openzeppelin/contracts/utils/Address.sol";
 import "@openzeppelin/contracts/utils/Context.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
 
 contract Kenshi is Context, IERC20, Ownable {
-    using Address for address;
     /* ERC20 related */
 
     mapping(address => uint256) private _balances;
