@@ -1,7 +1,7 @@
 const hre = require("hardhat");
 
 async function main() {
-  const Kenshi = await hre.ethers.getContractFactory("BEP20Token");
+  const Kenshi = await hre.ethers.getContractFactory("ERC20");
   const kenshi = await Kenshi.deploy();
 
   await kenshi.deployed();

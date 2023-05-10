@@ -70,3 +70,7 @@ the official Ethereum Improvement Proposal (EIP) document at
 - `solidity-coverage`: Solidity-coverage is a tool for generating code coverage
   reports for Solidity testing. It helps to ensure that the tests are
   thorough.
+- `@nomicfoundation/hardhat-verify`: A Hardhat plugin that allows developers to
+  verify their smart contracts on Etherscan. This plugin makes the smart
+  contract code available and readable to the public on the Etherscan
+  blockchain explorer.
