@@ -122,4 +122,17 @@ describe("Kenshi", function () {
       KNS.connect(addr1).transferFrom(_owner.address, addr1.address, "1")
     ).to.not.be.reverted;
   });
+
+  it("Recovering tokens should work", async function () {
+    const Kenshi = await ethers.getContractFactory("Kenshi");
+    const KNS = await Kenshi.deploy();
+    await KNS.deployed();
+
+    const [_owner, addr1] = await ethers.getSigners();
+
+    await KNS.transfer(KNS.address, "100000000000");
+    await KNS.recoverERC20(KNS.address, addr1.address, "100000000000");
+
+    expect(await KNS.balanceOf(addr1.address)).to.equal("100000000000");
+  });
 });
