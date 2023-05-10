@@ -65,8 +65,8 @@ the official Ethereum Improvement Proposal (EIP) document at
   the Ethereum blockchain and its ecosystem. It allows you to generate wallets,
   interact with smart contracts, and more.
 - `hardhat-contract-sizer`: This is a Hardhat plugin used for checking the size
-  of your contracts. This property is important because Ethereum contracts have
+  of the contracts. This property is important because Ethereum contracts have
   a maximum size limit.
 - `solidity-coverage`: Solidity-coverage is a tool for generating code coverage
-  reports for Solidity testing. It helps to ensure that your tests are
+  reports for Solidity testing. It helps to ensure that the tests are
   thorough.
