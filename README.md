@@ -31,19 +31,19 @@ the official Ethereum Improvement Proposal (EIP) document at
 
 ## Available Commands
 
-| Command           | Description                                                                                  |
-| ----------------- | -------------------------------------------------------------------------------------------- |
-| `test`            | Executes the contract tests in the Hardhat environment.                                      |
-| `coverage`        | Generates a code coverage report for your smart contracts.                                   |
-| `compile`         | Compiles your smart contracts in the Hardhat environment.                                    |
-| `size`            | Cleans the build artifacts and recompiles the contracts, allowing you to analyze their size. |
-| `scan:myth`       | Analyzes your smart contracts using the MythX tool for security vulnerabilities.             |
-| `prescan:myth`    | Compiles your smart contracts in preparation for MythX analysis.                             |
-| `scan:slither`    | Analyzes your smart contracts using the Slither tool for security vulnerabilities.           |
-| `prescan:slither` | Cleans the build artifacts in preparation for Slither analysis.                              |
-| `clean`           | Removes the build artifacts and cache.                                                       |
-| `scan`            | Runs both MythX and Slither security analyses on your smart contracts.                       |
-| `docgen`          | Generates documentation for your smart contracts using the Hardhat dodoc plugin.             |
+| Command                   | Description                                                                                  |
+| ------------------------- | -------------------------------------------------------------------------------------------- |
+| `npm run test`            | Executes the contract tests in the Hardhat environment.                                      |
+| `npm run coverage`        | Generates a code coverage report for your smart contracts.                                   |
+| `npm run compile`         | Compiles your smart contracts in the Hardhat environment.                                    |
+| `npm run size`            | Cleans the build artifacts and recompiles the contracts, allowing you to analyze their size. |
+| `npm run scan:myth`       | Analyzes your smart contracts using the MythX tool for security vulnerabilities.             |
+| `npm run prescan:myth`    | Compiles your smart contracts in preparation for MythX analysis.                             |
+| `npm run scan:slither`    | Analyzes your smart contracts using the Slither tool for security vulnerabilities.           |
+| `npm run prescan:slither` | Cleans the build artifacts in preparation for Slither analysis.                              |
+| `npm run clean`           | Removes the build artifacts and cache.                                                       |
+| `npm run scan`            | Runs both MythX and Slither security analyses on your smart contracts.                       |
+| `npm run docgen`          | Generates documentation for your smart contracts using the Hardhat dodoc plugin.             |
 
 ## Libraries Used
 
