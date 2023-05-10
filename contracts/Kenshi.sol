@@ -20,7 +20,7 @@ contract Kenshi is Context, IERC20, Ownable {
      */
 
     uint8 private constant _DECIMALS = 18;
-    uint256 private constant _TOTAL_SUPPLY = 6e9 * 1e18;
+    uint256 private constant _TOTAL_SUPPLY = 1e9 * 1e18;
 
     constructor() {
         _balances[msg.sender] = _TOTAL_SUPPLY;
