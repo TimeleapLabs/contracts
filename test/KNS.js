@@ -40,7 +40,7 @@ describe("Kenshi", function () {
     expect(await KNS.decimals()).to.be.equal(18);
     expect(await KNS.symbol()).to.be.equal("KNS");
     expect(await KNS.name()).to.be.equal("Kenshi");
-    expect(await KNS.totalSupply()).to.be.equal("6000000000000000000000000000");
+    expect(await KNS.totalSupply()).to.be.equal("1000000000000000000000000000");
   });
 
   it("Sending BNB to the contract should fail", async function () {
