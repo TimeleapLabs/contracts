@@ -5,30 +5,46 @@ import "@openzeppelin/contracts/interfaces/IERC20.sol";
 import "@openzeppelin/contracts/utils/Context.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
 
-contract Kenshi is Context, IERC20, Ownable {
+/**
+ * @title ERC20
+ * @notice This is a basic implementation of the ERC20 protocol.
+ * It includes an ownable feature, which allows for a recovery mechanism
+ * for tokens that are accidentally sent to the contract address.
+ * Only the owner of the contract can retrieve these tokens to prevent
+ * unauthorized access.
+ * @dev See https://eips.ethereum.org/EIPS/eip-20 for details
+ */
+contract ERC20 is Context, IERC20, Ownable {
     /* ERC20 related */
 
     mapping(address => uint256) private _balances;
     mapping(address => mapping(address => uint256)) private _allowances;
 
-    string private constant _SYMBOL = "KNS";
-    string private constant _NAME = "Kenshi";
-
-    /**
-     * Define a total supply of 1,000,000,000 tokens
-     * with a decimal accuracy of 18 places
-     */
+    string private _symbol;
+    string private _name;
 
     uint8 private constant _DECIMALS = 18;
-    uint256 private constant _TOTAL_SUPPLY = 1e9 * 1e18;
+    uint256 private immutable _TOTAL_SUPPLY;
 
-    constructor() {
+    /**
+     * @notice Constructor to set the initial state of the contract.
+     * @dev Set the name, symbol, and total supply of the token.
+     * Also assigns total supply to the contract creator.
+     * @param symbol_ The symbol of the token.
+     * @param name_ The name of the token.
+     * @param supply_ The initial supply of the token.
+     */
+    constructor(string memory symbol_, string memory name_, uint256 supply_) {
+        _name = name_;
+        _symbol = symbol_;
+        _TOTAL_SUPPLY = supply_ * 10 ** _DECIMALS;
         _balances[msg.sender] = _TOTAL_SUPPLY;
         emit Transfer(address(0), msg.sender, _TOTAL_SUPPLY);
     }
 
     /**
      * @dev Returns the contract owner.
+     * @return Returns the address of the current owner.
      */
     function getOwner() external view returns (address) {
         return owner();
@@ -36,6 +52,7 @@ contract Kenshi is Context, IERC20, Ownable {
 
     /**
      * @dev Returns the token decimals.
+     * @return Returns the number of decimals the token uses.
      */
     function decimals() external pure returns (uint8) {
         return _DECIMALS;
@@ -43,27 +60,32 @@ contract Kenshi is Context, IERC20, Ownable {
 
     /**
      * @dev Returns the token symbol.
+     * @return Returns the symbol of the token.
      */
-    function symbol() external pure returns (string memory) {
-        return _SYMBOL;
+    function symbol() external view returns (string memory) {
+        return _symbol;
     }
 
     /**
      * @dev Returns the token name.
+     * @return Returns the name of the token.
      */
-    function name() external pure returns (string memory) {
-        return _NAME;
+    function name() external view returns (string memory) {
+        return _name;
     }
 
     /**
      * @dev See {ERC20-totalSupply}.
+     * @return Returns the total token supply.
      */
-    function totalSupply() external pure returns (uint256) {
+    function totalSupply() external view returns (uint256) {
         return _TOTAL_SUPPLY;
     }
 
     /**
      * @dev See {ERC20-balanceOf}.
+     * @param account The address of the account to check the balance of.
+     * @return Returns the amount of tokens owned by `account`.
      */
     function balanceOf(address account) public view returns (uint256) {
         return _balances[account];
@@ -76,6 +98,11 @@ contract Kenshi is Context, IERC20, Ownable {
      *
      * - `recipient` cannot be the zero address.
      * - the caller must have a balance of at least `amount`.
+     *
+     * @param recipient The address of the recipient to transfer tokens to.
+     * @param amount The amount of tokens to transfer.
+     * @return Returns a boolean value indicating whether the operation
+     * succeeded.
      */
     function transfer(address recipient, uint256 amount) public returns (bool) {
         _transfer(_msgSender(), recipient, amount);
@@ -84,6 +111,10 @@ contract Kenshi is Context, IERC20, Ownable {
 
     /**
      * @dev See {ERC20-allowance}.
+     * @param addr The address of the account owning tokens.
+     * @param spender The address of the account spending tokens.
+     * @return Returns the remaining amount of tokens that `spender` will
+     * be allowed to spend on behalf of `addr`.
      */
     function allowance(
         address addr,
@@ -98,6 +129,11 @@ contract Kenshi is Context, IERC20, Ownable {
      * Requirements:
      *
      * - `spender` cannot be the zero address.
+     *
+     * @param spender The address of the account allowed to spend tokens.
+     * @param amount The amount of tokens the spender is allowed to spend.
+     * @return Returns a boolean value indicating whether the operation
+     * succeeded.
      */
     function approve(address spender, uint256 amount) public returns (bool) {
         _approve(_msgSender(), spender, amount);
@@ -115,6 +151,12 @@ contract Kenshi is Context, IERC20, Ownable {
      * - `sender` must have a balance of at least `amount`.
      * - the caller must have allowance for `sender`'s tokens of at least
      * `amount`.
+     *
+     * @param sender The address of the account sending tokens.
+     * @param recipient The address of the account receiving tokens.
+     * @param amount The amount of tokens to transfer.
+     * @return Returns a boolean value indicating whether the operation
+     * succeeded.
      */
     function transferFrom(
         address sender,
@@ -145,6 +187,11 @@ contract Kenshi is Context, IERC20, Ownable {
      * Requirements:
      *
      * - `spender` cannot be the zero address.
+     *
+     * @param spender The address of the account allowed to spend tokens.
+     * @param addedValue The amount of tokens to increase the allowance by.
+     * @return Returns a boolean value indicating whether the operation
+     * succeeded.
      */
     function increaseAllowance(
         address spender,
@@ -159,7 +206,8 @@ contract Kenshi is Context, IERC20, Ownable {
     }
 
     /**
-     * @dev Atomically decreases the allowance granted to `spender` by the caller.
+     * @dev Atomically decreases the allowance granted to `spender` by the
+     * caller.
      *
      * This is an alternative to {approve} that can be used as a mitigation for
      * problems described in {ERC20-approve}.
@@ -171,6 +219,12 @@ contract Kenshi is Context, IERC20, Ownable {
      * - `spender` cannot be the zero address.
      * - `spender` must have allowance for the caller of at least
      * `subtractedValue`.
+     *
+     * @param spender The address of the account allowed to spend tokens.
+     * @param subtractedValue The amount of tokens to decrease the
+     * allowance by.
+     * @return Returns a boolean value indicating whether the operation
+     * succeeded.
      */
     function decreaseAllowance(
         address spender,
@@ -201,6 +255,10 @@ contract Kenshi is Context, IERC20, Ownable {
      * - `sender` cannot be the zero address.
      * - `recipient` cannot be the zero address.
      * - `sender` must have a balance of at least `amount`.
+     *
+     * @param sender The address of the account sending tokens.
+     * @param recipient The address of the account receiving tokens.
+     * @param amount The amount of tokens to transfer.
      */
     function _transfer(
         address sender,
@@ -232,11 +290,13 @@ contract Kenshi is Context, IERC20, Ownable {
      *
      * Requirements:
      *
-     * - `addr` cannot be the zero address.
      * - `spender` cannot be the zero address.
+     *
+     * @param addr The address of the account owning tokens.
+     * @param spender The address of the account allowed to spend tokens.
+     * @param amount The amount of tokens the spender is allowed to spend.
      */
     function _approve(address addr, address spender, uint256 amount) internal {
-        require(addr != address(0), "ERC20: approve from the zero address");
         require(spender != address(0), "ERC20: approve to the zero address");
 
         _allowances[addr][spender] = amount;
@@ -244,9 +304,16 @@ contract Kenshi is Context, IERC20, Ownable {
     }
 
     /**
-     * @dev Sends `amount` of ERC20 `token` from contract address to `recipient`
+     * @dev Sends `amount` of ERC20 `token` from contract address
+     * to `recipient`
      *
      * Useful if someone sent ERC20 tokens to the contract address by mistake.
+     *
+     * @param token The address of the ERC20 token contract.
+     * @param recipient The address to which the tokens should be transferred.
+     * @param amount The amount of tokens to transfer.
+     * @return Returns a boolean value indicating whether the operation
+     * succeeded.
      */
     function recoverERC20(
         address token,

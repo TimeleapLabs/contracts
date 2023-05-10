@@ -5,8 +5,8 @@ const tx = async (tx) => await (await tx).wait();
 
 describe("Kenshi", function () {
   it("Shouldn't be able to transfer more than owned", async function () {
-    const Kenshi = await ethers.getContractFactory("Kenshi");
-    const KNS = await Kenshi.deploy();
+    const Kenshi = await ethers.getContractFactory("ERC20");
+    const KNS = await Kenshi.deploy("KNS", "Kenshi", "1000000000");
     await KNS.deployed();
 
     const [_owner, addr1, addr2] = await ethers.getSigners();
@@ -18,9 +18,63 @@ describe("Kenshi", function () {
     ).to.be.revertedWith("ERC20: transfer amount exceeds balance");
   });
 
+  it("Shouldn't be able to transfer to address(0)", async function () {
+    const Kenshi = await ethers.getContractFactory("ERC20");
+    const KNS = await Kenshi.deploy("KNS", "Kenshi", "1000000000");
+    await KNS.deployed();
+
+    const [_owner] = await ethers.getSigners();
+
+    await expect(
+      tx(KNS.connect(_owner).transfer(ethers.constants.AddressZero, "1"))
+    ).to.be.revertedWith("ERC20: transfer to the zero address");
+  });
+
+  it("Shouldn't be able to transfer from address(0)", async function () {
+    const Kenshi = await ethers.getContractFactory("ERC20");
+    const KNS = await Kenshi.deploy("KNS", "Kenshi", "1000000000");
+    await KNS.deployed();
+
+    const [_owner] = await ethers.getSigners();
+
+    await expect(
+      tx(
+        KNS.connect(_owner).transferFrom(
+          ethers.constants.AddressZero,
+          _owner.address,
+          "0"
+        )
+      )
+    ).to.be.revertedWith("ERC20: transfer from the zero address");
+  });
+
+  it("Shouldn't be able to approve to address(0)", async function () {
+    const Kenshi = await ethers.getContractFactory("ERC20");
+    const KNS = await Kenshi.deploy("KNS", "Kenshi", "1000000000");
+    await KNS.deployed();
+
+    const [_owner] = await ethers.getSigners();
+
+    await expect(
+      tx(KNS.connect(_owner).approve(ethers.constants.AddressZero, "1"))
+    ).to.be.revertedWith("ERC20: approve to the zero address");
+  });
+
+  it("Decrease allowance shouldn't underflow", async function () {
+    const Kenshi = await ethers.getContractFactory("ERC20");
+    const KNS = await Kenshi.deploy("KNS", "Kenshi", "1000000000");
+    await KNS.deployed();
+
+    const [_owner, addr1] = await ethers.getSigners();
+
+    await expect(
+      tx(KNS.connect(_owner).decreaseAllowance(addr1.address, "1"))
+    ).to.be.revertedWith("ERC20: decreased allowance below zero");
+  });
+
   it("Balances should be reported correctly", async function () {
-    const Kenshi = await ethers.getContractFactory("Kenshi");
-    const KNS = await Kenshi.deploy();
+    const Kenshi = await ethers.getContractFactory("ERC20");
+    const KNS = await Kenshi.deploy("KNS", "Kenshi", "1000000000");
     await KNS.deployed();
 
     const [_owner, addr1] = await ethers.getSigners();
@@ -30,8 +84,8 @@ describe("Kenshi", function () {
   });
 
   it("Base info should be set correctly on deploy", async function () {
-    const Kenshi = await ethers.getContractFactory("Kenshi");
-    const KNS = await Kenshi.deploy();
+    const Kenshi = await ethers.getContractFactory("ERC20");
+    const KNS = await Kenshi.deploy("KNS", "Kenshi", "1000000000");
     await KNS.deployed();
 
     const [_owner] = await ethers.getSigners();
@@ -44,8 +98,8 @@ describe("Kenshi", function () {
   });
 
   it("Sending BNB to the contract should fail", async function () {
-    const Kenshi = await ethers.getContractFactory("Kenshi");
-    const KNS = await Kenshi.deploy();
+    const Kenshi = await ethers.getContractFactory("ERC20");
+    const KNS = await Kenshi.deploy("KNS", "Kenshi", "1000000000");
     await KNS.deployed();
 
     const [_owner] = await ethers.getSigners();
@@ -59,8 +113,8 @@ describe("Kenshi", function () {
   });
 
   it("Ownership transfer should work", async function () {
-    const Kenshi = await ethers.getContractFactory("Kenshi");
-    const KNS = await Kenshi.deploy();
+    const Kenshi = await ethers.getContractFactory("ERC20");
+    const KNS = await Kenshi.deploy("KNS", "Kenshi", "1000000000");
     await KNS.deployed();
 
     const [_owner, addr1] = await ethers.getSigners();
@@ -75,8 +129,8 @@ describe("Kenshi", function () {
   });
 
   it("Transfer from should fail without allowance", async function () {
-    const Kenshi = await ethers.getContractFactory("Kenshi");
-    const KNS = await Kenshi.deploy();
+    const Kenshi = await ethers.getContractFactory("ERC20");
+    const KNS = await Kenshi.deploy("KNS", "Kenshi", "1000000000");
     await KNS.deployed();
 
     const [_owner, addr1] = await ethers.getSigners();
@@ -87,8 +141,8 @@ describe("Kenshi", function () {
   });
 
   it("Approval and allowance should work", async function () {
-    const Kenshi = await ethers.getContractFactory("Kenshi");
-    const KNS = await Kenshi.deploy();
+    const Kenshi = await ethers.getContractFactory("ERC20");
+    const KNS = await Kenshi.deploy("KNS", "Kenshi", "1000000000");
     await KNS.deployed();
 
     const [_owner, addr1] = await ethers.getSigners();
@@ -110,8 +164,8 @@ describe("Kenshi", function () {
   });
 
   it("Transfer from should pass with correct allowance", async function () {
-    const Kenshi = await ethers.getContractFactory("Kenshi");
-    const KNS = await Kenshi.deploy();
+    const Kenshi = await ethers.getContractFactory("ERC20");
+    const KNS = await Kenshi.deploy("KNS", "Kenshi", "1000000000");
     await KNS.deployed();
 
     const [_owner, addr1] = await ethers.getSigners();
@@ -124,8 +178,8 @@ describe("Kenshi", function () {
   });
 
   it("Recovering tokens should work", async function () {
-    const Kenshi = await ethers.getContractFactory("Kenshi");
-    const KNS = await Kenshi.deploy();
+    const Kenshi = await ethers.getContractFactory("ERC20");
+    const KNS = await Kenshi.deploy("KNS", "Kenshi", "1000000000");
     await KNS.deployed();
 
     const [_owner, addr1] = await ethers.getSigners();
