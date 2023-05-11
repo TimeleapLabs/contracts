@@ -37,12 +37,10 @@ the official Ethereum Improvement Proposal (EIP) document at
 | `npm run coverage`        | Generates a code coverage report for the smart contracts.                                    |
 | `npm run compile`         | Compiles the smart contracts in the Hardhat environment.                                     |
 | `npm run size`            | Cleans the build artifacts and recompiles the contracts, allowing you to analyze their size. |
-| `npm run scan:myth`       | Analyzes the smart contracts using the MythX tool for security vulnerabilities.              |
-| `npm run prescan:myth`    | Compiles the smart contracts in preparation for MythX analysis.                              |
 | `npm run scan:slither`    | Analyzes the smart contracts using the Slither tool for security vulnerabilities.            |
 | `npm run prescan:slither` | Cleans the build artifacts in preparation for Slither analysis.                              |
 | `npm run clean`           | Removes the build artifacts and cache.                                                       |
-| `npm run scan`            | Runs both MythX and Slither security analyses on the smart contracts.                        |
+| `npm run scan`            | Runs the `scan:slither` command.                                                             |
 | `npm run docgen`          | Generates documentation for the smart contracts using the Hardhat dodoc plugin.              |
 | `prettier:check`          | Check if the contracts are formatted according to Prettier.                                  |
 | `prettier:fix`            | Automatically format the contracts using Prettier.                                           |
@@ -84,3 +82,22 @@ Prettier helps keep the code clean and easy to read.
 - `prettier`: An opinionated code formatter that enforces a consistent style
   by parsing the code and re-printing it. It's used in this project to ensure
   a consistent code style for all Solidity contracts.
+
+## Security Scans
+
+To run the security scans, you need to have Python installed. Install the
+dependencies with the following commands:
+
+```bash
+python -m venv venv
+source ./venv/bin/activate
+pip install -r requirements.txt
+```
+
+Then run the `npm run scan` command.
+
+Once done, you can deactivate the Python venv:
+
+```bash
+deactivate
+```

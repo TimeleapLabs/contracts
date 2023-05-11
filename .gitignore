@@ -11,3 +11,6 @@ typechain
 cache
 artifacts
 *.flat.sol
+
+#Python
+venv
