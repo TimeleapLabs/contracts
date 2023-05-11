@@ -94,9 +94,7 @@ source ./venv/bin/activate
 pip install -r requirements.txt
 ```
 
-Then run the `npm run scan` command.
-
-Once done, you can deactivate the Python venv:
+Then run the `npm run scan` command. Once done, you can deactivate the Python venv:
 
 ```bash
 deactivate
