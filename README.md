@@ -44,8 +44,13 @@ the official Ethereum Improvement Proposal (EIP) document at
 | `npm run clean`           | Removes the build artifacts and cache.                                                       |
 | `npm run scan`            | Runs both MythX and Slither security analyses on the smart contracts.                        |
 | `npm run docgen`          | Generates documentation for the smart contracts using the Hardhat dodoc plugin.              |
+| `prettier:check`          | Check if the contracts are formatted according to Prettier.                                  |
+| `prettier:fix`            | Automatically format the contracts using Prettier.                                           |
 
-## Libraries Used
+In this project, we use Prettier to enforce a consistent coding style.
+Prettier helps keep the code clean and easy to read.
+
+## Development Dependencies
 
 - `hardhat`: Hardhat is an Ethereum development environment. It helps
   developers manage and automate recurring tasks like compilation, testing,
@@ -74,3 +79,8 @@ the official Ethereum Improvement Proposal (EIP) document at
   verify their smart contracts on Etherscan. This plugin makes the smart
   contract code available and readable to the public on the Etherscan
   blockchain explorer.
+- `solhint`: A linter for Solidity that helps enforce style and security for
+  the smart contracts.
+- `prettier`: An opinionated code formatter that enforces a consistent style
+  by parsing the code and re-printing it. It's used in this project to ensure
+  a consistent code style for all Solidity contracts.

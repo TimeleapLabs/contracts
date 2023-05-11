@@ -4,6 +4,18 @@ require("hardhat-contract-sizer");
 require("@primitivefi/hardhat-dodoc");
 require("@nomicfoundation/hardhat-verify");
 
+const networks = {};
+
+if (process.env.ETHEREUM_RPC_URL) {
+  networks.mainnet = { url: process.env.ETHEREUM_RPC_URL };
+} else if (process.env.ETHEREUM_GOERLI_RPC_URL) {
+  networks.testnet = { url: process.env.ETHEREUM_GOERLI_RPC_URL };
+} else if (process.env.ARBITRUM_RPC_URL) {
+  networks.mainnet = { url: process.env.ARBITRUM_RPC_URL };
+} else if (process.env.ARBITRUM_GOERLI_RPC_URL) {
+  networks.testnet = { url: process.env.ARBITRUM_GOERLI_RPC_URL };
+}
+
 /**
  * @type import('hardhat/config').HardhatUserConfig
  */
@@ -17,20 +29,7 @@ module.exports = {
       },
     },
   },
-  networks: {
-    ethereum_mainnet: {
-      url: process.env.ETHEREUM_RPC_URL,
-    },
-    ethereum_goerli: {
-      url: process.env.ETHEREUM_GOERLI_RPC_URL,
-    },
-    arbitrum_mainnet: {
-      url: process.env.ARBITRUM_RPC_URL,
-    },
-    arbitrum_goerli: {
-      url: process.env.ARBITRUM_GOERLI_RPC_URL,
-    },
-  },
+  ...(Object.keys(networks).length ? { networks } : {}),
   contractSizer: {
     runOnCompile: true,
   },

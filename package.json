@@ -14,7 +14,11 @@
     "prescan:slither": "npm run clean",
     "clean": "rm -rf artifacts cache",
     "scan": "npm run scan:myth && npm run scan:slither",
-    "docgen": "hardhat dodoc"
+    "docgen": "hardhat dodoc",
+    "lint": "solhint -f table contracts",
+    "lint:fix": "solhint -f table --fix contracts",
+    "prettier:check": "prettier --check contracts",
+    "prettier:fix": "prettier --write contracts"
   },
   "keywords": [],
   "author": "",
@@ -28,6 +32,9 @@
     "ethers": "^5.5.3",
     "hardhat": "^2.8.2",
     "hardhat-contract-sizer": "^2.3.1",
+    "prettier": "^2.8.8",
+    "prettier-plugin-solidity": "^1.1.3",
+    "solhint": "^3.4.1",
     "solidity-coverage": "^0.7.17",
     "web3": "^1.6.1"
   },
