@@ -1,5 +1,7 @@
 # Kenshi ERC20 Token Implementation
 
+<img src="https://kenshi.io/images/logo/logo.svg" alt="Kenshi" width="128">
+
 This repository contains the source code for the Kenshi token smart contract.
 
 - [x] Fully documented and commented
