@@ -84,13 +84,8 @@ structure of the repository:
 ```
 .
 ├── README.md
-├── artifacts
-│   ├── @openzeppelin
-│   ├── build-info
-│   └── contracts
 ├── contracts
 │   └── ERC20.sol
-├── coverage.json
 ├── docs
 │   ├── ERC20.md
 │   ├── elin
