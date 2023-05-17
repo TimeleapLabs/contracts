@@ -1,3 +1,7 @@
+![Contracts CI](https://github.com/KenshiTech/contracts/actions/workflows/main.yml/badge.svg)
+[![Codacy Badge](https://app.codacy.com/project/badge/Grade/a1d35b2f9c6f4388b355e5b4a765495a)](https://app.codacy.com/gh/KenshiTech/contracts/dashboard?utm_source=gh&utm_medium=referral&utm_content=&utm_campaign=Badge_grade)
+[![Codacy Badge](https://app.codacy.com/project/badge/Coverage/a1d35b2f9c6f4388b355e5b4a765495a)](https://app.codacy.com/gh/KenshiTech/contracts/dashboard?utm_source=gh&utm_medium=referral&utm_content=&utm_campaign=Badge_coverage)
+
 # Kenshi ERC20 Token Implementation
 
 <img src="https://kenshi.io/images/logo/logo.svg" alt="Kenshi" width="128">
