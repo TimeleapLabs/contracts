@@ -1,4 +1,4 @@
-# Kenshi Token Smart Contract
+# Kenshi ERC20 Token Implementation
 
 This repository contains the source code for the Kenshi token smart contract.
 
