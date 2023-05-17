@@ -40,3 +40,6 @@ jobs:
 
       - name: Check Formatting
         run: npm run prettier:check
+
+      - name: Codacy Coverage Reporter
+        uses: codacy/codacy-coverage-reporter-action@v1.3.0
