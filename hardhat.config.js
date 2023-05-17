@@ -3,17 +3,15 @@ require("solidity-coverage");
 require("hardhat-contract-sizer");
 require("@primitivefi/hardhat-dodoc");
 require("@nomicfoundation/hardhat-verify");
+require("dotenv").config();
 
 const networks = {};
 
-if (process.env.ETHEREUM_RPC_URL) {
-  networks.mainnet = { url: process.env.ETHEREUM_RPC_URL };
-} else if (process.env.ETHEREUM_GOERLI_RPC_URL) {
-  networks.testnet = { url: process.env.ETHEREUM_GOERLI_RPC_URL };
-} else if (process.env.ARBITRUM_RPC_URL) {
-  networks.mainnet = { url: process.env.ARBITRUM_RPC_URL };
-} else if (process.env.ARBITRUM_GOERLI_RPC_URL) {
-  networks.testnet = { url: process.env.ARBITRUM_GOERLI_RPC_URL };
+if (process.env.RPC_URL && process.env.PRIVATE_KEY) {
+  networks.mainnet = {
+    url: process.env.RPC_URL,
+    accounts: [process.env.PRIVATE_KEY],
+  };
 }
 
 /**

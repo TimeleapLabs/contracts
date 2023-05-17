@@ -25,6 +25,7 @@ the official Ethereum Improvement Proposal (EIP) document at
 
 ## Documentation
 
+- See [docs/usage.md](docs/requirements.md) for functional and technical requirements.
 - See [docs/usage.md](docs/usage.md) for basic usage instructions.
 - See [docs/ERC20.md](docs/ERC20.md) or
   [contracts/ERC20.sol](contracts/ERC20.sol) for developer documentation.
@@ -42,11 +43,45 @@ the official Ethereum Improvement Proposal (EIP) document at
 | `npm run clean`           | Removes the build artifacts and cache.                                                       |
 | `npm run scan`            | Runs the `scan:slither` command.                                                             |
 | `npm run docgen`          | Generates documentation for the smart contracts using the Hardhat dodoc plugin.              |
-| `prettier:check`          | Check if the contracts are formatted according to Prettier.                                  |
-| `prettier:fix`            | Automatically format the contracts using Prettier.                                           |
+| `npm run deploy`          | Deploys the token to the selected network.                                                   |
+| `npm run prettier:check`  | Check if the contracts are formatted according to Prettier.                                  |
+| `npm run prettier:fix`    | Automatically format the contracts using Prettier.                                           |
 
 In this project, we use Prettier to enforce a consistent coding style.
 Prettier helps keep the code clean and easy to read.
+
+### Deploying Instructions
+
+Duplicate the `.env.example` file and rename it to `.env`, then fill in the
+missing values based on the following table:
+
+| Variable            | Description                                                             |
+| ------------------- | ----------------------------------------------------------------------- |
+| `PRIVATE_KEY`       | Private key to use for deployment, in hex format. Must have enough gas. |
+| `ETHERSCAN_API_KEY` | Etherscan API key (to verify the contracts)                             |
+| `RPC_URL`           | RPC URL of the network you are deploying to                             |
+| `TOKEN_NAME`        | Name of the token to deploy                                             |
+| `TOKEN_SYMBOL`      | Symbol of the token to deploy                                           |
+| `TOKEN_SUPPLY`      | Total supply of the token to deploy                                     |
+
+Then run the `deploy` and, optionally the `verify` command:
+
+```
+npm run deploy
+npm run verify
+```
+
+## Project Structure
+
+This repository is a Hardhat JavaScript project with the following structure:
+
+| Directory                 | Description                                                       |
+| ------------------------- | ----------------------------------------------------------------- |
+| [.github](./.github/)     | GitHub Actions workflow to run tests on push and pull request.    |
+| [contracts](./contracts/) | The ERC20 token contract in Solidity.                             |
+| [docs](./docs/)           | Technical and practical guides and documentation.                 |
+| [scripts](./scripts/)     | Scripts to help with development and deployment of the contracts. |
+| [test](./test/)           | Unit tests for the ERC20 token contract.                          |
 
 ## Development Dependencies
 
