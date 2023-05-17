@@ -221,21 +221,17 @@ A typical usage flow would be:
    function. It sets the initial state of the contract, including name, symbol,
    and total supply of the tokens. The total supply of tokens is assigned to the
    contract creator.
-
 2. **Token Transfer** - A user can transfer tokens to another user's address
    using the `transfer` function. The `_transfer` internal function is called,
    which checks the sender's balance, subtracts the transfer amount, and adds it
    to the recipient's balance.
-
 3. **Allowance Setting** - A user can set an allowance for another user's
    address using the `approve` function. This sets how many tokens the approved
    address can spend on behalf of the caller.
-
 4. **Token Transfer from Another Address** - A user can transfer tokens from an
    approved address using the `transferFrom` function. This function checks the
    allowance set for the caller, then calls the `_transfer` internal function to
    move the tokens.
-
 5. **Token Recovery** - In case tokens are sent to the contract address by
    mistake, the owner of the contract can recover them using the `recoverERC20`
    function.
