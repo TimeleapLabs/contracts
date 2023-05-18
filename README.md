@@ -41,6 +41,7 @@ the official Ethereum Improvement Proposal (EIP) document at
 
 | Command                   | Description                                                                                  |
 | ------------------------- | -------------------------------------------------------------------------------------------- |
+| `npm install`             | Installs the project dependencies.                                                           |
 | `npm run test`            | Executes the contract tests in the Hardhat environment.                                      |
 | `npm run coverage`        | Generates a code coverage report for the smart contracts.                                    |
 | `npm run compile`         | Compiles the smart contracts in the Hardhat environment.                                     |
