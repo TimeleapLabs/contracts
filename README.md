@@ -32,7 +32,7 @@ the official Ethereum Improvement Proposal (EIP) document at
 
 ## Documentation
 
-- See [docs/usage.md](docs/requirements.md) for functional and technical requirements.
+- See [docs/requirements.md](docs/requirements.md) for functional and technical requirements.
 - See [docs/usage.md](docs/usage.md) for basic usage instructions.
 - See [docs/ERC20.md](docs/ERC20.md) or
   [contracts/ERC20.sol](contracts/ERC20.sol) for developer documentation.
