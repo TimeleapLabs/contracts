@@ -19,14 +19,14 @@ contract Kenshi is ERC20, Ownable {
     using SafeERC20 for IERC20;
 
     /**
-     * @notice Constructor to deploy Kenshi token with `initialSupply` tokens
-     * minted.
-     * @dev Mints initial supply of tokens and assigns them to the owner of the
-     * contract. Token name is "Kenshi" and token symbol is "KNS".
-     * @param initialSupply The number of tokens to initially mint.
+     * @notice Constructor to deploy the Kenshi token with `totalSupply`
+     * tokens minted.
+     * @dev Mints the total supply of tokens and assigns them to the owner of
+     * the contract. Token name is "Kenshi" and token symbol is "KNS".
+     * @param totalSupply The number of tokens to initially mint.
      */
-    constructor(uint256 initialSupply) ERC20("Kenshi", "KNS") {
-        _mint(msg.sender, initialSupply);
+    constructor(uint256 totalSupply) ERC20("Kenshi", "KNS") {
+        _mint(msg.sender, totalSupply);
     }
 
     /**
