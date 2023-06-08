@@ -85,9 +85,9 @@ structure of the repository:
 .
 ├── README.md
 ├── contracts
-│   └── ERC20.sol
+│   └── Kenshi.sol
 ├── docs
-│   ├── ERC20.md
+│   ├── Kenshi.md
 │   ├── elin
 │   ├── requirements.md
 │   └── usage.md

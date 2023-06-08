@@ -34,8 +34,8 @@ the official Ethereum Improvement Proposal (EIP) document at
 
 - See [docs/requirements.md](docs/requirements.md) for functional and technical requirements.
 - See [docs/usage.md](docs/usage.md) for basic usage instructions.
-- See [docs/ERC20.md](docs/ERC20.md) or
-  [contracts/ERC20.sol](contracts/ERC20.sol) for developer documentation.
+- See [docs/Kenshi.md](docs/Kenshi.md) or
+  [contracts/Kenshi.sol](contracts/Kenshi.sol) for developer documentation.
 
 ## Available Commands
 
@@ -86,10 +86,10 @@ This repository is a Hardhat JavaScript project with the following structure:
 | Directory                 | Description                                                       |
 | ------------------------- | ----------------------------------------------------------------- |
 | [.github](./.github/)     | GitHub Actions workflow to run tests on push and pull request.    |
-| [contracts](./contracts/) | The ERC20 token contract in Solidity.                             |
+| [contracts](./contracts/) | The Kenshi ERC20 token contract in Solidity.                      |
 | [docs](./docs/)           | Technical and practical guides and documentation.                 |
 | [scripts](./scripts/)     | Scripts to help with development and deployment of the contracts. |
-| [test](./test/)           | Unit tests for the ERC20 token contract.                          |
+| [test](./test/)           | Unit tests for the Kesnhi ERC20 token contract.                   |
 
 ## Development Dependencies
 

@@ -1,8 +1,8 @@
-# ERC20
+# Kenshi
 
 
 
-> ERC20
+> Kenshi
 
 This is a basic implementation of the ERC20 protocol. It includes an ownable feature, which allows for a recovery mechanism for tokens that are accidentally sent to the contract address. Only the owner of the contract can retrieve these tokens to prevent unauthorized access.
 
@@ -13,25 +13,25 @@ This is a basic implementation of the ERC20 protocol. It includes an ownable fea
 ### allowance
 
 ```solidity
-function allowance(address addr, address spender) external view returns (uint256)
+function allowance(address owner, address spender) external view returns (uint256)
 ```
 
 
 
-*See {ERC20-allowance}.*
+*See {IERC20-allowance}.*
 
 #### Parameters
 
 | Name | Type | Description |
 |---|---|---|
-| addr | address | The address of the account owning tokens. |
-| spender | address | The address of the account spending tokens. |
+| owner | address | undefined |
+| spender | address | undefined |
 
 #### Returns
 
 | Name | Type | Description |
 |---|---|---|
-| _0 | uint256 | Returns the remaining amount of tokens that `spender` will be allowed to spend on behalf of `addr`. |
+| _0 | uint256 | undefined |
 
 ### approve
 
@@ -41,20 +41,20 @@ function approve(address spender, uint256 amount) external nonpayable returns (b
 
 
 
-*See {ERC20-approve}. Requirements: - `spender` cannot be the zero address.*
+*See {IERC20-approve}. NOTE: If `amount` is the maximum `uint256`, the allowance is not updated on `transferFrom`. This is semantically equivalent to an infinite approval. Requirements: - `spender` cannot be the zero address.*
 
 #### Parameters
 
 | Name | Type | Description |
 |---|---|---|
-| spender | address | The address of the account allowed to spend tokens. |
-| amount | uint256 | The amount of tokens the spender is allowed to spend. |
+| spender | address | undefined |
+| amount | uint256 | undefined |
 
 #### Returns
 
 | Name | Type | Description |
 |---|---|---|
-| _0 | bool | Returns a boolean value indicating whether the operation succeeded. |
+| _0 | bool | undefined |
 
 ### balanceOf
 
@@ -64,36 +64,36 @@ function balanceOf(address account) external view returns (uint256)
 
 
 
-*See {ERC20-balanceOf}.*
+*See {IERC20-balanceOf}.*
 
 #### Parameters
 
 | Name | Type | Description |
 |---|---|---|
-| account | address | The address of the account to check the balance of. |
+| account | address | undefined |
 
 #### Returns
 
 | Name | Type | Description |
 |---|---|---|
-| _0 | uint256 | Returns the amount of tokens owned by `account`. |
+| _0 | uint256 | undefined |
 
 ### decimals
 
 ```solidity
-function decimals() external pure returns (uint8)
+function decimals() external view returns (uint8)
 ```
 
 
 
-*Returns the token decimals.*
+*Returns the number of decimals used to get its user representation. For example, if `decimals` equals `2`, a balance of `505` tokens should be displayed to a user as `5.05` (`505 / 10 ** 2`). Tokens usually opt for a value of 18, imitating the relationship between Ether and Wei. This is the value {ERC20} uses, unless this function is overridden; NOTE: This information is only used for _display_ purposes: it in no way affects any of the arithmetic of the contract, including {IERC20-balanceOf} and {IERC20-transfer}.*
 
 
 #### Returns
 
 | Name | Type | Description |
 |---|---|---|
-| _0 | uint8 | Returns the number of decimals the token uses. |
+| _0 | uint8 | undefined |
 
 ### decreaseAllowance
 
@@ -103,37 +103,20 @@ function decreaseAllowance(address spender, uint256 subtractedValue) external no
 
 
 
-*Atomically decreases the allowance granted to `spender` by the caller. This is an alternative to {approve} that can be used as a mitigation for problems described in {ERC20-approve}. Emits an {Approval} event indicating the updated allowance. Requirements: - `spender` cannot be the zero address. - `spender` must have allowance for the caller of at least `subtractedValue`.*
+*Atomically decreases the allowance granted to `spender` by the caller. This is an alternative to {approve} that can be used as a mitigation for problems described in {IERC20-approve}. Emits an {Approval} event indicating the updated allowance. Requirements: - `spender` cannot be the zero address. - `spender` must have allowance for the caller of at least `subtractedValue`.*
 
 #### Parameters
 
 | Name | Type | Description |
 |---|---|---|
-| spender | address | The address of the account allowed to spend tokens. |
-| subtractedValue | uint256 | The amount of tokens to decrease the allowance by. |
+| spender | address | undefined |
+| subtractedValue | uint256 | undefined |
 
 #### Returns
 
 | Name | Type | Description |
 |---|---|---|
-| _0 | bool | Returns a boolean value indicating whether the operation succeeded. |
-
-### getOwner
-
-```solidity
-function getOwner() external view returns (address)
-```
-
-
-
-*Returns the contract owner.*
-
-
-#### Returns
-
-| Name | Type | Description |
-|---|---|---|
-| _0 | address | Returns the address of the current owner. |
+| _0 | bool | undefined |
 
 ### increaseAllowance
 
@@ -143,20 +126,20 @@ function increaseAllowance(address spender, uint256 addedValue) external nonpaya
 
 
 
-*Atomically increases the allowance granted to `spender` by the caller. This is an alternative to {approve} that can be used as a mitigation for problems described in {ERC20-approve}. Emits an {Approval} event indicating the updated allowance. Requirements: - `spender` cannot be the zero address.*
+*Atomically increases the allowance granted to `spender` by the caller. This is an alternative to {approve} that can be used as a mitigation for problems described in {IERC20-approve}. Emits an {Approval} event indicating the updated allowance. Requirements: - `spender` cannot be the zero address.*
 
 #### Parameters
 
 | Name | Type | Description |
 |---|---|---|
-| spender | address | The address of the account allowed to spend tokens. |
-| addedValue | uint256 | The amount of tokens to increase the allowance by. |
+| spender | address | undefined |
+| addedValue | uint256 | undefined |
 
 #### Returns
 
 | Name | Type | Description |
 |---|---|---|
-| _0 | bool | Returns a boolean value indicating whether the operation succeeded. |
+| _0 | bool | undefined |
 
 ### name
 
@@ -166,14 +149,14 @@ function name() external view returns (string)
 
 
 
-*Returns the token name.*
+*Returns the name of the token.*
 
 
 #### Returns
 
 | Name | Type | Description |
 |---|---|---|
-| _0 | string | Returns the name of the token. |
+| _0 | string | undefined |
 
 ### owner
 
@@ -195,7 +178,7 @@ function owner() external view returns (address)
 ### recoverERC20
 
 ```solidity
-function recoverERC20(address token, address recipient, uint256 amount) external nonpayable returns (bool)
+function recoverERC20(address token, address recipient, uint256 amount) external nonpayable
 ```
 
 
@@ -209,12 +192,6 @@ function recoverERC20(address token, address recipient, uint256 amount) external
 | token | address | The address of the ERC20 token contract. |
 | recipient | address | The address to which the tokens should be transferred. |
 | amount | uint256 | The amount of tokens to transfer. |
-
-#### Returns
-
-| Name | Type | Description |
-|---|---|---|
-| _0 | bool | Returns a boolean value indicating whether the operation succeeded. |
 
 ### renounceOwnership
 
@@ -235,14 +212,14 @@ function symbol() external view returns (string)
 
 
 
-*Returns the token symbol.*
+*Returns the symbol of the token, usually a shorter version of the name.*
 
 
 #### Returns
 
 | Name | Type | Description |
 |---|---|---|
-| _0 | string | Returns the symbol of the token. |
+| _0 | string | undefined |
 
 ### totalSupply
 
@@ -252,61 +229,61 @@ function totalSupply() external view returns (uint256)
 
 
 
-*See {ERC20-totalSupply}.*
+*See {IERC20-totalSupply}.*
 
 
 #### Returns
 
 | Name | Type | Description |
 |---|---|---|
-| _0 | uint256 | Returns the total token supply. |
+| _0 | uint256 | undefined |
 
 ### transfer
 
 ```solidity
-function transfer(address recipient, uint256 amount) external nonpayable returns (bool)
+function transfer(address to, uint256 amount) external nonpayable returns (bool)
 ```
 
 
 
-*See {ERC20-transfer}. Requirements: - `recipient` cannot be the zero address. - the caller must have a balance of at least `amount`.*
+*See {IERC20-transfer}. Requirements: - `to` cannot be the zero address. - the caller must have a balance of at least `amount`.*
 
 #### Parameters
 
 | Name | Type | Description |
 |---|---|---|
-| recipient | address | The address of the recipient to transfer tokens to. |
-| amount | uint256 | The amount of tokens to transfer. |
+| to | address | undefined |
+| amount | uint256 | undefined |
 
 #### Returns
 
 | Name | Type | Description |
 |---|---|---|
-| _0 | bool | Returns a boolean value indicating whether the operation succeeded. |
+| _0 | bool | undefined |
 
 ### transferFrom
 
 ```solidity
-function transferFrom(address sender, address recipient, uint256 amount) external nonpayable returns (bool)
+function transferFrom(address from, address to, uint256 amount) external nonpayable returns (bool)
 ```
 
 
 
-*See {ERC20-transferFrom}. Emits an {Approval} event indicating the updated allowance. This is not required by the EIP. See the note at the beginning of {ERC20}; Requirements: - `sender` and `recipient` cannot be the zero address. - `sender` must have a balance of at least `amount`. - the caller must have allowance for `sender`&#39;s tokens of at least `amount`.*
+*See {IERC20-transferFrom}. Emits an {Approval} event indicating the updated allowance. This is not required by the EIP. See the note at the beginning of {ERC20}. NOTE: Does not update the allowance if the current allowance is the maximum `uint256`. Requirements: - `from` and `to` cannot be the zero address. - `from` must have a balance of at least `amount`. - the caller must have allowance for ``from``&#39;s tokens of at least `amount`.*
 
 #### Parameters
 
 | Name | Type | Description |
 |---|---|---|
-| sender | address | The address of the account sending tokens. |
-| recipient | address | The address of the account receiving tokens. |
-| amount | uint256 | The amount of tokens to transfer. |
+| from | address | undefined |
+| to | address | undefined |
+| amount | uint256 | undefined |
 
 #### Returns
 
 | Name | Type | Description |
 |---|---|---|
-| _0 | bool | Returns a boolean value indicating whether the operation succeeded. |
+| _0 | bool | undefined |
 
 ### transferOwnership
 
