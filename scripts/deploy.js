@@ -2,16 +2,12 @@ const { ethers } = require("hardhat");
 require("dotenv").config();
 
 async function main() {
-  const ERC20 = await ethers.getContractFactory("ERC20");
-  const erc20 = await ERC20.deploy(
-    process.env.TOKEN_SYMBOL,
-    process.env.TOKEN_NAME,
-    process.env.TOKEN_SUPPLY
-  );
+  const Kenshi = await ethers.getContractFactory("Kenshi");
+  const kenshi = await Kenshi.deploy(process.env.TOKEN_SUPPLY);
 
-  await erc20.deployed();
+  await kenshi.deployed();
 
-  console.log("ERC20 token deployed to:", erc20.address);
+  console.log("ERC20 token deployed to:", kenshi.address);
 }
 
 main()

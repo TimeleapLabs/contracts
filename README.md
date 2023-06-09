@@ -68,8 +68,6 @@ missing values based on the following table:
 | `PRIVATE_KEY`       | Private key to use for deployment, in hex format. Must have enough gas. |
 | `ETHERSCAN_API_KEY` | Etherscan API key (to verify the contracts)                             |
 | `RPC_URL`           | RPC URL of the network you are deploying to                             |
-| `TOKEN_NAME`        | Name of the token to deploy                                             |
-| `TOKEN_SYMBOL`      | Symbol of the token to deploy                                           |
 | `TOKEN_SUPPLY`      | Total supply of the token to deploy                                     |
 
 Then run the `deploy` and, optionally the `verify` command:
