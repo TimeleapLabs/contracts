@@ -40,7 +40,7 @@
     "web3": "^1.6.1"
   },
   "dependencies": {
-    "@openzeppelin/contracts": "^4.8.3",
+    "@openzeppelin/contracts": "^4.9.6",
     "@poanet/solidity-flattener": "^3.0.7",
     "@primitivefi/hardhat-dodoc": "^0.2.3"
   }
